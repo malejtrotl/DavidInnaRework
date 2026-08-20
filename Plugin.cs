@@ -32,6 +32,10 @@ public class Plugin : BasePlugin
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ImproviseLoseManaThenCreateToolsPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ImproviseDescriptionPatch));
 
+        // Card 1407 "Ingenuity" (see CardPatches/Card1407_Ingenuity.cs)
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IngenuityToolCountPatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IngenuityCostAndDescriptionPatch));
+
         // Card 1418 "Cleansing Balm" (see CardPatches/Card1418_CleansingBalm.cs)
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(CleansingBalmCleanseCountPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(CleansingBalmDescriptionPatch));
