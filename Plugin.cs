@@ -48,6 +48,10 @@ public class Plugin : BasePlugin
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(InvestigateToolCountPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(InvestigateDescriptionPatch));
 
+        // Card 1414 "Adventurer's Log" (see CardPatches/Card1414_AdventurersLog.cs)
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(AdventurersLogUpgradedDrawPatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(AdventurersLogUpgradedCostPatch));
+
         // Card 1418 "Cleansing Balm" (see CardPatches/Card1418_CleansingBalm.cs)
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(CleansingBalmCleanseCountPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(CleansingBalmDescriptionPatch));
