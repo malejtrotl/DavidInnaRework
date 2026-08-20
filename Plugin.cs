@@ -1,0 +1,30 @@
+using BepInEx;
+using BepInEx.Logging;
+using BepInEx.Unity.IL2CPP;
+using HarmonyLib;
+using DavidInnaRework.CardPatches;
+
+namespace DavidInnaRework;
+
+[BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
+public class Plugin : BasePlugin
+{
+    internal static new ManualLogSource Log;
+
+    public override void Load()
+    {
+        // Plugin startup logic
+        Log = base.Log;
+        Log.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
+
+        // Card 0052 "Block" (see CardPatches/Card0052_Block.cs)
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ShieldCardBuffPatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(BlockGrantsToughPatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(BlockDescriptionPatch));
+
+        // Card 1003 "Ice Blast" (see CardPatches/Card1003_IceBlast.cs)
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IceBlastPatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IceBlastDescriptionPatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IceBlastNamePatch));
+    }
+}
