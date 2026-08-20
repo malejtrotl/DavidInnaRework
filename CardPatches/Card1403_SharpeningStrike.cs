@@ -55,7 +55,7 @@ public static class SharpeningStrikeIncreaseDamagePatch
 public static class SharpeningStrikeDescriptionPatch
 {
     private const int SharpeningStrikeCardId = 1403;
-    private const string NewDescription = "Deal {0} damage to the first enemy. Increase the damage of this and all strikes in your hand by {1}.";
+    private const string NewDescription = "Deal {0} damage to the first enemy. Increase the damage of this and all Strikes in your hand by {1}.";
 
     static void Prefix(CardData __instance)
     {
