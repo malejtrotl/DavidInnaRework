@@ -40,6 +40,10 @@ public class Plugin : BasePlugin
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IngenuityToolCountPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IngenuityCostAndDescriptionPatch));
 
+        // Card 1408 "Frantic Scouring" (see CardPatches/Card1408_FranticScouring.cs)
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(FranticScouringDiscardCreatesToolsPatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(FranticScouringDescriptionPatch));
+
         // Card 1409 "Investigate" (see CardPatches/Card1409_Investigate.cs)
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(InvestigateToolCountPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(InvestigateDescriptionPatch));
