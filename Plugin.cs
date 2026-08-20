@@ -27,6 +27,16 @@ public class Plugin : BasePlugin
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IceBlastDescriptionPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IceBlastNamePatch));
 
+        // Card 1418 "Cleansing Balm" (see CardPatches/Card1418_CleansingBalm.cs)
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(CleansingBalmCleanseCountPatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(CleansingBalmDescriptionPatch));
+
+        // Card 1422 "Fire Bomb" (see CardPatches/Card1422_FireBomb.cs)
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(FireBombHitCountPatch));
+
+        // Card 1423 "Caltrops" (see CardPatches/Card1423_Caltrops.cs)
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(CaltropsHitCountPatch));
+
         // Card 1432 "Bottled Ectoplasm" (see CardPatches/Card1432_BottledEctoplasm.cs)
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(BottledEctoplasmTriggersCursePatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(BottledEctoplasmDescriptionPatch));
