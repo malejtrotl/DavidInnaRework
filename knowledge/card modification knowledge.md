@@ -357,6 +357,37 @@ Notes:
 
 ---
 
+## 5. Adding a new effect
+
+To add a behavior a card does not already have, create a `CardEffect` and add
+it to the card's `_Effects` list from a `CardData.GetDescription` Prefix. The
+Prefix must guard on the card ID and check for an equivalent existing effect so
+it remains idempotent.
+
+**Important: assign `CardData = __instance` on every newly created effect.**
+Effects loaded from the game's assets already have this owner back-reference,
+but `new CardEffect` does not. The game can dereference the owner while
+resolving or executing an effect; omitting it caused a Unity
+`NullReferenceException` for a runtime-added `TriggerEffect`.
+
+```csharp
+var triggerCurseEffect = new CardEffect
+{
+    CardData = __instance,
+    _Mode = EffectMode.TriggerEffect,
+    _AppliedEffect = AppliedEffectType.Curse,
+    _Targeting = EffectTargeting.Ranged,
+    _EffectValue = 1,
+    _EffectValueUpgraded = 1,
+    _EffectCount = 1,
+    _EffectCountUpgraded = 1,
+};
+
+__instance._Effects.Add(triggerCurseEffect);
+```
+
+---
+
 ## General checklist for adding a new card patch
 
 1. Find the card's `_CardID` and the effect(s) you want to change (dnSpy /
@@ -368,8 +399,8 @@ Notes:
    Prefix for value/condition changes, and/or a
    `[HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]` Prefix
    (editing `_BaseDescription` and/or `_Name`) for text/name changes, and/or
-   a new-effect patch (adding a `CardEffect` to `_Effects`) — see the
-   examples above.
+   a new-effect patch (adding a `CardEffect` to `_Effects`, with
+   `CardData = __instance`) — see the examples above.
 4. Register the new patch class(es) in `Plugin.Load()` via
    `new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(YourPatchClass));`,
    under a comment naming the card and its file (matching the existing

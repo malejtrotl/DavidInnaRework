@@ -74,7 +74,7 @@ object-initializer syntax works fine.
 | `_VFXPrefab` | `UICardVFX` | Visual effect prefab reference — only exists on effects that were loaded from real game assets; can't easily fabricate this for a from-scratch effect. |
 | `_VFXPrefabID` | `int` | ID tied to the VFX prefab. |
 | `_Prefab` | `ScriptableObject` | **Card-reference field for "create card" effects** — e.g. `CreateAndDraw`/`CreateAndChoose`/etc likely read this to know *which* `CardData` to instantiate. Confirmed to accept an arbitrary `CardData` (including one built with `ScriptableObject.CreateInstance<CardData>()`) via `BlockCreatesNeedlePatch` in the sister `MyFirstPlugin` project. |
-| `CardData` (property) | `CardData` | Back-reference to the owning card. Read via `effect.CardData`, used in `ShieldCardBuffPatch`-style patches to filter effects belonging to a specific `_CardID`. |
+| `CardData` (property) | `CardData` | Back-reference to the owning card. Read via `effect.CardData`, used in `ShieldCardBuffPatch`-style patches to filter effects belonging to a specific `_CardID`. **Required for runtime-created effects:** set `CardData = __instance` before adding the effect to `__instance._Effects`; list insertion does not initialize it, and a missing owner caused a Unity `NullReferenceException` when a new `TriggerEffect` executed. |
 | `AffectedEntity` (property) | `Entity` | The entity the effect last affected (runtime state, not config). |
 
 Key methods:
@@ -351,4 +351,3 @@ buff/debuff, e.g. `PlayerHasCondition`/`PlayerHasntCondition`).
   Revisit with a full-assembly decompile + grep for "CardData[]"/
   "List<CardData>" field usages outside `MetaInventory`, or dnSpy "Analyze"
   on the `CardData` class itself to find all consuming types.
-

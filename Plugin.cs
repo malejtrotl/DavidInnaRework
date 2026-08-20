@@ -26,5 +26,9 @@ public class Plugin : BasePlugin
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IceBlastPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IceBlastDescriptionPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IceBlastNamePatch));
+
+        // Card 1432 "Bottled Ectoplasm" (see CardPatches/Card1432_BottledEctoplasm.cs)
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(BottledEctoplasmTriggersCursePatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(BottledEctoplasmDescriptionPatch));
     }
 }
