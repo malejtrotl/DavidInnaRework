@@ -23,6 +23,10 @@ public class Plugin : BasePlugin
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ToolsPlayedThisTurnModifierTrackUseCardPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ToolsPlayedThisTurnModifierGetFinalValuePatch));
 
+        // No-fatigue draw on Tool played mechanic
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(NoFatigueDrawOnToolPlayedModifierPatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(NoFatigueDrawOnToolPlayedPatch));
+
         // Card 0052 "Block" (see CardPatches/Card0052_Block.cs)
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ShieldCardBuffPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(BlockGrantsToughPatch));
