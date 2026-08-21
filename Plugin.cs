@@ -62,6 +62,10 @@ public class Plugin : BasePlugin
         // Card 1423 "Caltrops" (see CardPatches/Card1423_Caltrops.cs)
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(CaltropsHitCountPatch));
 
+        // Card 1427 "Inkwell and Quill" (see CardPatches/Card1427_InkwellAndQuill.cs)
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(InkwellAndQuillUpgradablePatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(InkwellAndQuillUpgradedValuePatch));
+
         // Card 1432 "Bottled Ectoplasm" (see CardPatches/Card1432_BottledEctoplasm.cs)
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(BottledEctoplasmTriggersCursePatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(BottledEctoplasmDescriptionPatch));
