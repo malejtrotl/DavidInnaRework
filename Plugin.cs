@@ -58,6 +58,11 @@ public class Plugin : BasePlugin
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(AdventurersLogUpgradedDrawPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(AdventurersLogUpgradedCostPatch));
 
+        // Card 1411 "Resourceful Strike" (see CardPatches/Card1411_ResourcefulStrike.cs)
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ResourcefulStrikeDamagePatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ResourcefulStrikeOtherEffectPatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ResourcefulStrikeDescriptionPatch));
+
         // Card 1418 "Cleansing Balm" (see CardPatches/Card1418_CleansingBalm.cs)
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(CleansingBalmCleanseCountPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(CleansingBalmDescriptionPatch));
