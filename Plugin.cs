@@ -27,16 +27,6 @@ public class Plugin : BasePlugin
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(NoFatigueDrawOnToolPlayedModifierPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(NoFatigueDrawOnToolPlayedPatch));
 
-        // Card 0052 "Block" (see CardPatches/Card0052_Block.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ShieldCardBuffPatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(BlockGrantsToughPatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(BlockDescriptionPatch));
-
-        // Card 1003 "Ice Blast" (see CardPatches/Card1003_IceBlast.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IceBlastPatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IceBlastDescriptionPatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IceBlastNamePatch));
-
         // Card 1400 "Improvise" (see CardPatches/Card1400_Improvise.cs)
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ImproviseToolCountPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ImproviseLoseManaThenCreateToolsPatch));
