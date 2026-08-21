@@ -5,9 +5,6 @@ namespace DavidInnaRework.CardPatches;
 
 // Card 1407 "Ingenuity": new cost, different tool count, and completely new
 // description text.
-//
-// All values below are PLACEHOLDERS — fill them in once decided.
-
 // Changes how many tools Ingenuity creates.
 //
 // Patched as a Prefix on CardEffect.GetFinalValue, mutating _EffectValue
