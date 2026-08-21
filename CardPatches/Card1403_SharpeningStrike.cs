@@ -43,14 +43,6 @@ public static class SharpeningStrikeIncreaseDamagePatch
     }
 }
 
-// Placeholder for Sharpening Strike's updated tooltip text, to cover the new
-// IncreaseDamage effect. Same pattern as the other description patches: a
-// Prefix on CardData.GetDescription overwriting _BaseDescription (the raw
-// template) before the original method runs, so the game still fills in the
-// placeholders itself afterwards.
-//
-// PLACEHOLDER: replace NewDescription with the real wording (including
-// {0}/{1}... placeholders as needed for the damage/increase values).
 [HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]
 public static class SharpeningStrikeDescriptionPatch
 {

@@ -23,7 +23,7 @@ public class Plugin : BasePlugin
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ToolsPlayedThisTurnModifierTrackUseCardPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ToolsPlayedThisTurnModifierGetFinalValuePatch));
 
-        // No-fatigue draw on Tool played mechanic
+        // No-fatigue draw on Tool played mechanic(see MechanicPatches/NoFatigueDrawOnToolPlayed.cs)
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(NoFatigueDrawOnToolPlayedModifierPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(NoFatigueDrawOnToolPlayedPatch));
 

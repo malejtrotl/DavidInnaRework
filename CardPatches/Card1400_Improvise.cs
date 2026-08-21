@@ -33,8 +33,7 @@ public static class ImproviseToolCountPatch
 }
 
 // Adds the two new effects, in play order after the existing CreateTool:
-// negative AddMana (there is no immediate "lose mana" EffectMode — only
-// LoseManaEndTurn — so mana loss is expressed as a negative AddMana), then a
+// negative AddMana
 // CreateTool gated behind EffectModifiers.OnlyIfOutOfMana.
 //
 // Hooked on CardData.GetDescription because it fires once per card (unlike
@@ -110,12 +109,13 @@ public static class ImproviseLoseManaThenCreateToolsPatch
 public static class ImproviseDescriptionPatch
 {
     private const int ImproviseCardId = 1400;
+    private const string NewDescription =
+        "Create {0} Tool. Lose {1} mana. If you have no mana, create {2} more Tools.";
 
     static void Prefix(CardData __instance)
     {
         if (__instance == null || __instance._CardID != ImproviseCardId) return;
 
-        __instance._BaseDescription =
-            "Create {0} Tool. Lose {1} mana. If you have no mana, create {2} more Tools.";
+        __instance._BaseDescription = NewDescription;
     }
 }

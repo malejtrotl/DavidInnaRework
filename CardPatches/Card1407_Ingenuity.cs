@@ -45,12 +45,8 @@ public static class IngenuityToolCountPatch
 public static class IngenuityCostAndDescriptionPatch
 {
     private const int IngenuityCardId = 1407;
-
-    // PLACEHOLDER: mana cost, unupgraded / upgraded.
     private const int Cost = 4;
     private const int CostUpgraded = 2;
-
-    // PLACEHOLDER: full replacement wording.
     private const string NewDescription = "Create {0} Tools, then upgrade all Tool cards in hand.";
 
     static void Prefix(CardData __instance)

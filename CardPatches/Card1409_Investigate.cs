@@ -41,9 +41,6 @@ public static class InvestigateToolCountPatch
     }
 }
 
-// Updated tooltip text: the baseline now creates multiple Tools, so "Create 1
-// Tool" becomes plural. The numbers stay as placeholders ({0}/{1}/{2}) so the
-// game still fills in the live/buffed values itself.
 [HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]
 public static class InvestigateDescriptionPatch
 {

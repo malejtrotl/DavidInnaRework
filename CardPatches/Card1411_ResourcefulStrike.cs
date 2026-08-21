@@ -90,7 +90,6 @@ public static class ResourcefulStrikeEffectOrderPatch
     }
 }
 
-// Placeholder for the fully rewritten Resourceful Strike description.
 [HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]
 public static class ResourcefulStrikeDescriptionPatch
 {

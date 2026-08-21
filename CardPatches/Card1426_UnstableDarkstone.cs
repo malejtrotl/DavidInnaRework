@@ -46,12 +46,6 @@ public static class UnstableDarkstoneDispelPatch
     }
 }
 
-// Placeholder for Unstable Darkstone's fully rewritten tooltip text, needed
-// because of the added Dispel effect.
-//
-// PLACEHOLDER: replace NewDescription with the real wording (keeping
-// {0}/{1}... placeholders for the numbers so the game fills in the
-// live/upgraded values itself).
 [HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]
 public static class UnstableDarkstoneDescriptionPatch
 {

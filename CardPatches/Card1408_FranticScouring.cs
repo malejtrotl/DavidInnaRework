@@ -51,12 +51,6 @@ public static class FranticScouringDiscardCreatesToolsPatch
     }
 }
 
-// Placeholder for Frantic Scouring's updated tooltip text, needed because the
-// card now also creates Tools when discarded.
-//
-// PLACEHOLDER: replace NewDescription with the real wording (keeping {0}/{1}
-// placeholders for the on-play and when-discarded tool counts so the game
-// fills in the live/upgraded values itself).
 [HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]
 public static class FranticScouringDescriptionPatch
 {
