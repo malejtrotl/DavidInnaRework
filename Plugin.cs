@@ -42,6 +42,11 @@ public class Plugin : BasePlugin
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ImproviseLoseManaThenCreateToolsPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ImproviseDescriptionPatch));
 
+        // Card 1401 "Improvised Strike" (see CardPatches/Card1401_ImprovisedStrike.cs)
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ImprovisedStrikeEffectPatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ImprovisedStrikeDescriptionPatch));
+        NoFatigueDrawOnToolPlayedState.Configure(1401);
+
         // Card 1403 "Sharpening Strike" (see CardPatches/Card1403_SharpeningStrike.cs)
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(SharpeningStrikeIncreaseDamagePatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(SharpeningStrikeDescriptionPatch));
