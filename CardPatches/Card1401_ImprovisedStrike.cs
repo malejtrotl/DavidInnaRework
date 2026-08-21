@@ -1,4 +1,3 @@
-using HarmonyLib;
 using Rift;
 
 namespace DavidInnaRework.CardPatches;
@@ -9,35 +8,28 @@ namespace DavidInnaRework.CardPatches;
 //
 // The draw trigger is provided by the generic NoFatigueDrawOnToolPlayed
 // mechanic, configured for this card in Plugin.Load().
-[HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]
-public static class ImprovisedStrikeEffectPatch
+//
+// Applied once via ApplyMutations(), invoked from
+// MechanicPatches/CardDataGameLoadInitializer.cs at real game-load time.
+public static class Card1401_ImprovisedStrike
 {
-    private const int ImprovisedStrikeCardId = 1401;
+    internal const int ImprovisedStrikeCardId = 1401;
     private const int DamageValue = 2;
     private const int DamageValueUpgraded = 2;
     private const int DamageCount = 2;
     private const int DamageCountUpgraded = 3;
+    private const int Cost = 1;
+    private const string NewDescription =
+        "Deal {0} damage to the first enemy. Draw one Improvised Strike when you play a Tool.";
 
-    static void Prefix(CardData __instance)
+    public static void ApplyMutations(CardData cardData)
     {
-        if (__instance == null || __instance._CardID != ImprovisedStrikeCardId) return;
+        if (cardData == null || cardData._CardID != ImprovisedStrikeCardId) return;
 
-        foreach (var effect in __instance._Effects)
+        cardData._Effects.Clear();
+        cardData._Effects.Add(new CardEffect
         {
-            if (effect._Mode == EffectMode.Damage
-                && effect._EffectValue == DamageValue
-                && effect._EffectValueUpgraded == DamageValueUpgraded
-                && effect._EffectCount == DamageCount
-                && effect._EffectCountUpgraded == DamageCountUpgraded)
-            {
-                return;
-            }
-        }
-
-        __instance._Effects.Clear();
-        __instance._Effects.Add(new CardEffect
-        {
-            CardData = __instance,
+            CardData = cardData,
             _Mode = EffectMode.Damage,
             _Targeting = EffectTargeting.Melee,
             _EffectValue = DamageValue,
@@ -45,23 +37,9 @@ public static class ImprovisedStrikeEffectPatch
             _EffectCount = DamageCount,
             _EffectCountUpgraded = DamageCountUpgraded,
         });
-    }
-}
 
-[HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]
-public static class ImprovisedStrikeDescriptionPatch
-{
-    private const int ImprovisedStrikeCardId = 1401;
-    private const int Cost = 1;
-    private const string NewDescription =
-        "Deal {0} damage to the first enemy. Draw one Improvised Strike when you play a Tool.";
-
-    static void Prefix(CardData __instance)
-    {
-        if (__instance == null || __instance._CardID != ImprovisedStrikeCardId) return;
-
-        __instance._BaseDescription = NewDescription;
-        __instance._Cost = Cost;
-        __instance._CostUpgraded = Cost;
+        cardData._Cost = Cost;
+        cardData._CostUpgraded = Cost;
+        cardData._BaseDescription = NewDescription;
     }
 }

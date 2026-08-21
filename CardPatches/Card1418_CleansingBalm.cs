@@ -1,36 +1,31 @@
-using HarmonyLib;
 using Rift;
 
 namespace DavidInnaRework.CardPatches;
 
-[HarmonyPatch(typeof(CardEffect), nameof(CardEffect.GetEffectCount))]
-public static class CleansingBalmCleanseCountPatch
+// Card 1418 "Cleansing Balm": bumps the Cleanse count from 1 to 2 (3
+// upgraded).
+//
+// Applied once via ApplyMutations(), invoked from
+// MechanicPatches/CardDataGameLoadInitializer.cs at real game-load time.
+public static class Card1418_CleansingBalm
 {
-    private const int CleansingBalmCardId = 1418;
+    internal const int CleansingBalmCardId = 1418;
     private const int CleanseCount = 2;
     private const int UpgradedCleanseCount = 3;
+    private const string NewDescription = "Reduce all statuses by {0}. Cleanse yourself {1} times.";
 
-    static void Prefix(CardEffect __instance)
+    public static void ApplyMutations(CardData cardData)
     {
-        var cardData = __instance.CardData;
         if (cardData == null || cardData._CardID != CleansingBalmCardId) return;
-        if (__instance._Mode != EffectMode.Cleanse) return;
 
-        __instance._EffectValue = CleanseCount;
-        __instance._EffectValueUpgraded = UpgradedCleanseCount;
-    }
-}
+        foreach (var effect in cardData._Effects)
+        {
+            if (effect._Mode != EffectMode.Cleanse) continue;
 
-[HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]
-public static class CleansingBalmDescriptionPatch
-{
-    private const int CleansingBalmCardId = 1418;
+            effect._EffectValue = CleanseCount;
+            effect._EffectValueUpgraded = UpgradedCleanseCount;
+        }
 
-    static void Prefix(CardData __instance)
-    {
-        if (__instance == null || __instance._CardID != CleansingBalmCardId) return;
-
-        __instance._BaseDescription = __instance._BaseDescription
-            .Replace(" time.", " times.");
+        cardData._BaseDescription = NewDescription;
     }
 }

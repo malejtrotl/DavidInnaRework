@@ -21,21 +21,22 @@ public static class NoFatigueDrawOnToolPlayedState
     {
         TargetCardId = cardId;
     }
-}
 
-// Ensures the target card persistently carries both the marker flag and
-// NoFatigueSpecialDraw, regardless of how/when the game touches it.
-[HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]
-public static class NoFatigueDrawOnToolPlayedModifierPatch
-{
-    static void Prefix(CardData __instance)
+    // Static, purely data/flag mutation (no text involved) — marks the target
+    // card so it can always be found by DrawCardsWithModifier and never
+    // counts toward fatigue. Applied once via
+    // MechanicPatches/CardDataGameLoadInitializer.cs at real game-load time.
+    public static void ApplyMutations(CardData cardData)
     {
-        if (__instance == null || __instance._CardID != NoFatigueDrawOnToolPlayedState.TargetCardId) return;
+        if (cardData == null || cardData._CardID != TargetCardId) return;
 
-        __instance._Modifiers |= CardModifiers.NoFatigueSpecialDraw | NoFatigueDrawOnToolPlayedState.DrawMarker;
+        cardData._Modifiers |= CardModifiers.NoFatigueSpecialDraw | DrawMarker;
     }
 }
 
+// The actual trigger is inherently event-driven (fires live, each time a Tool
+// is played during a match), so unlike the flag setup above, this stays a
+// per-call Harmony patch.
 [HarmonyPatch(typeof(CombatManager), nameof(CombatManager.UseCard))]
 public static class NoFatigueDrawOnToolPlayedPatch
 {
@@ -47,29 +48,6 @@ public static class NoFatigueDrawOnToolPlayedPatch
         var cardData = card.Data;
         if (cardData == null || cardData._CardType != CardType.Tool) return;
 
-        // Ensure the target card carries both flags even if GetDescription has
-        // not fired yet for this CardData instance.
-        var targetCard = FindCard(castingEntity._Deck) ?? FindCard(castingEntity._DiscardPile);
-        if (targetCard?.Data != null)
-        {
-            targetCard.Data._Modifiers |= CardModifiers.NoFatigueSpecialDraw | NoFatigueDrawOnToolPlayedState.DrawMarker;
-        }
-
         castingEntity.DrawCardsWithModifier(NoFatigueDrawOnToolPlayedState.DrawMarker);
-    }
-
-    private static Card FindCard(Il2CppSystem.Collections.Generic.List<Card> pile)
-    {
-        if (pile == null) return null;
-
-        foreach (var candidate in pile)
-        {
-            if (candidate?.Data != null && candidate.Data._CardID == NoFatigueDrawOnToolPlayedState.TargetCardId)
-            {
-                return candidate;
-            }
-        }
-
-        return null;
     }
 }

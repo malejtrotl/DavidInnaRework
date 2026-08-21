@@ -1,22 +1,27 @@
-using HarmonyLib;
 using Rift;
 
 namespace DavidInnaRework.CardPatches;
 
-[HarmonyPatch(typeof(CardEffect), nameof(CardEffect.GetEffectCount))]
-public static class CaltropsHitCountPatch
+// Card 1423 "Caltrops": increases the hit count from 2 to 3 (4 upgraded).
+//
+// Applied once via ApplyMutations(), invoked from
+// MechanicPatches/CardDataGameLoadInitializer.cs at real game-load time.
+public static class Card1423_Caltrops
 {
-    private const int CaltropsCardId = 1423;
+    internal const int CaltropsCardId = 1423;
     private const int HitCount = 3;
     private const int UpgradedHitCount = 4;
 
-    static void Prefix(CardEffect __instance)
+    public static void ApplyMutations(CardData cardData)
     {
-        var cardData = __instance.CardData;
         if (cardData == null || cardData._CardID != CaltropsCardId) return;
-        if (__instance._Mode != EffectMode.Damage) return;
 
-        __instance._EffectCount = HitCount;
-        __instance._EffectCountUpgraded = UpgradedHitCount;
+        foreach (var effect in cardData._Effects)
+        {
+            if (effect._Mode != EffectMode.Damage) continue;
+
+            effect._EffectCount = HitCount;
+            effect._EffectCountUpgraded = UpgradedHitCount;
+        }
     }
 }

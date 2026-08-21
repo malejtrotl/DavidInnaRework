@@ -1,22 +1,27 @@
-using HarmonyLib;
 using Rift;
 
 namespace DavidInnaRework.CardPatches;
 
-[HarmonyPatch(typeof(CardEffect), nameof(CardEffect.GetEffectCount))]
-public static class FireBombHitCountPatch
+// Card 1422 "Fire Bomb": increases the hit count from 2 to 3 (4 upgraded).
+//
+// Applied once via ApplyMutations(), invoked from
+// MechanicPatches/CardDataGameLoadInitializer.cs at real game-load time.
+public static class Card1422_FireBomb
 {
-    private const int FireBombCardId = 1422;
+    internal const int FireBombCardId = 1422;
     private const int HitCount = 3;
     private const int UpgradedHitCount = 4;
 
-    static void Prefix(CardEffect __instance)
+    public static void ApplyMutations(CardData cardData)
     {
-        var cardData = __instance.CardData;
         if (cardData == null || cardData._CardID != FireBombCardId) return;
-        if (__instance._Mode != EffectMode.Damage) return;
 
-        __instance._EffectCount = HitCount;
-        __instance._EffectCountUpgraded = UpgradedHitCount;
+        foreach (var effect in cardData._Effects)
+        {
+            if (effect._Mode != EffectMode.Damage) continue;
+
+            effect._EffectCount = HitCount;
+            effect._EffectCountUpgraded = UpgradedHitCount;
+        }
     }
 }

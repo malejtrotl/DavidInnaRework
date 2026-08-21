@@ -18,71 +18,26 @@ public class Plugin : BasePlugin
         Log = base.Log;
         Log.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
 
-        // Tool-played modifier emulation (see MechanicPatches/ToolPlayedThisTurnModifierEmulation.cs)
+        // Configure generic trigger targets (see
+        // MechanicPatches/NoFatigueDrawOnToolPlayed.cs) BEFORE the game-load
+        // initializer below runs, so it knows which card to flag. Draw
+        // Improvised Strike (Card ID 1401) whenever a Tool is played.
+        NoFatigueDrawOnToolPlayedState.Configure(1401);
+
+        // One-time card mutation initializer (effects/numeric data AND text),
+        // applied once at real game-load time (see
+        // MechanicPatches/CardDataGameLoadInitializer.cs). Covers every card
+        // listed there: 1400, 1401, 1403, 1407, 1408, 1409, 1411, 1414, 1418,
+        // 1422, 1423, 1426, 1427, 1432, plus the NoFatigueDrawOnToolPlayed
+        // flag above.
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(CardDataGameLoadInitializerPatch));
+
+        // Tool-played modifier emulation (see MechanicPatches/ToolsPlayedThisTurnModifierEmulation.cs)
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ToolsPlayedThisTurnModifierResetPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ToolsPlayedThisTurnModifierTrackUseCardPatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ToolsPlayedThisTurnModifierGetFinalValuePatch));
 
-        // No-fatigue draw on Tool played mechanic(see MechanicPatches/NoFatigueDrawOnToolPlayed.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(NoFatigueDrawOnToolPlayedModifierPatch));
+        // No-fatigue draw on Tool played mechanic (see MechanicPatches/NoFatigueDrawOnToolPlayed.cs)
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(NoFatigueDrawOnToolPlayedPatch));
-
-        // Card 1400 "Improvise" (see CardPatches/Card1400_Improvise.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ImproviseToolCountPatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ImproviseLoseManaThenCreateToolsPatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ImproviseDescriptionPatch));
-
-        // Card 1401 "Improvised Strike" (see CardPatches/Card1401_ImprovisedStrike.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ImprovisedStrikeEffectPatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ImprovisedStrikeDescriptionPatch));
-        NoFatigueDrawOnToolPlayedState.Configure(1401);
-
-        // Card 1403 "Sharpening Strike" (see CardPatches/Card1403_SharpeningStrike.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(SharpeningStrikeIncreaseDamagePatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(SharpeningStrikeDescriptionPatch));
-
-        // Card 1407 "Ingenuity" (see CardPatches/Card1407_Ingenuity.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IngenuityToolCountPatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IngenuityCostAndDescriptionPatch));
-
-        // Card 1408 "Frantic Scouring" (see CardPatches/Card1408_FranticScouring.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(FranticScouringDiscardCreatesToolsPatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(FranticScouringDescriptionPatch));
-
-        // Card 1409 "Investigate" (see CardPatches/Card1409_Investigate.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(InvestigateToolCountPatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(InvestigateDescriptionPatch));
-
-        // Card 1411 "Resourceful Strike" (see CardPatches/Card1411_ResourcefulStrike.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ResourcefulStrikeOtherEffectPatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ResourcefulStrikeDamagePatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ResourcefulStrikeEffectOrderPatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ResourcefulStrikeDescriptionPatch));
-
-        // Card 1414 "Adventurer's Log" (see CardPatches/Card1414_AdventurersLog.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(AdventurersLogUpgradedDrawPatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(AdventurersLogUpgradedCostPatch));
-
-        // Card 1418 "Cleansing Balm" (see CardPatches/Card1418_CleansingBalm.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(CleansingBalmCleanseCountPatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(CleansingBalmDescriptionPatch));
-
-        // Card 1422 "Fire Bomb" (see CardPatches/Card1422_FireBomb.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(FireBombHitCountPatch));
-
-        // Card 1423 "Caltrops" (see CardPatches/Card1423_Caltrops.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(CaltropsHitCountPatch));
-
-        // Card 1426 "Unstable Darkstone" (see CardPatches/Card1426_UnstableDarkstone.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(UnstableDarkstoneDispelPatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(UnstableDarkstoneDescriptionPatch));
-
-        // Card 1427 "Inkwell and Quill" (see CardPatches/Card1427_InkwellAndQuill.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(InkwellAndQuillUpgradablePatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(InkwellAndQuillUpgradedValuePatch));
-
-        // Card 1432 "Bottled Ectoplasm" (see CardPatches/Card1432_BottledEctoplasm.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(BottledEctoplasmTriggersCursePatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(BottledEctoplasmDescriptionPatch));
     }
 }

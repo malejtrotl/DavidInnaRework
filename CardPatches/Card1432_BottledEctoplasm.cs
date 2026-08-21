@@ -1,18 +1,26 @@
-using HarmonyLib;
 using Rift;
 
 namespace DavidInnaRework.CardPatches;
 
-[HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]
-public static class BottledEctoplasmTriggersCursePatch
+// Card 1432 "Bottled Ectoplasm" gains a NEW TriggerEffect (Curse) so the
+// curse it gives is immediately triggered.
+//
+// Applied once via ApplyMutations(), invoked from
+// MechanicPatches/CardDataGameLoadInitializer.cs at real game-load time.
+//
+// CardData = cardData is required on the new effect: effects loaded from the
+// game's assets already have this owner back-reference, but `new CardEffect`
+// does not, and a missing owner causes a NullReferenceException at runtime.
+public static class Card1432_BottledEctoplasm
 {
-    private const int BottledEctoplasmCardId = 1432;
+    internal const int BottledEctoplasmCardId = 1432;
+    private const string NewDescription = "Give Curse ({0}) to any enemy, then trigger it {1} time.";
 
-    static void Prefix(CardData __instance)
+    public static void ApplyMutations(CardData cardData)
     {
-        if (__instance == null || __instance._CardID != BottledEctoplasmCardId) return;
+        if (cardData == null || cardData._CardID != BottledEctoplasmCardId) return;
 
-        foreach (var existingEffect in __instance._Effects)
+        foreach (var existingEffect in cardData._Effects)
         {
             if (existingEffect._Mode == EffectMode.TriggerEffect
                 && existingEffect._AppliedEffect == AppliedEffectType.Curse)
@@ -23,7 +31,7 @@ public static class BottledEctoplasmTriggersCursePatch
 
         var triggerCurseEffect = new CardEffect
         {
-            CardData = __instance,
+            CardData = cardData,
             _Mode = EffectMode.TriggerEffect,
             _AppliedEffect = AppliedEffectType.Curse,
             _Targeting = EffectTargeting.Ranged,
@@ -31,19 +39,8 @@ public static class BottledEctoplasmTriggersCursePatch
             _EffectValueUpgraded = 1,
         };
 
-        __instance._Effects.Add(triggerCurseEffect);
-    }
-}
+        cardData._Effects.Add(triggerCurseEffect);
 
-[HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]
-public static class BottledEctoplasmDescriptionPatch
-{
-    private const int BottledEctoplasmCardId = 1432;
-
-    static void Prefix(CardData __instance)
-    {
-        if (__instance == null || __instance._CardID != BottledEctoplasmCardId) return;
-
-        __instance._BaseDescription = "Give Curse ({0}) to any enemy, then trigger it {1} time.";
+        cardData._BaseDescription = NewDescription;
     }
 }
