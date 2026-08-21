@@ -3,6 +3,7 @@ using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
 using DavidInnaRework.CardPatches;
+using DavidInnaRework.MechanicPatches;
 
 namespace DavidInnaRework;
 
@@ -16,6 +17,11 @@ public class Plugin : BasePlugin
         // Plugin startup logic
         Log = base.Log;
         Log.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
+
+        // Tool-played modifier emulation (see MechanicPatches/ToolPlayedThisTurnModifierEmulation.cs)
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ToolsPlayedThisTurnResetPatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ToolsPlayedThisTurnTrackUseCardPatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ToolsPlayedThisTurnGetFinalValuePatch));
 
         // Card 0052 "Block" (see CardPatches/Card0052_Block.cs)
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ShieldCardBuffPatch));
