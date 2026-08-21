@@ -69,12 +69,42 @@ public static class ResourcefulStrikeOtherEffectPatch
     }
 }
 
+[HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]
+public static class ResourcefulStrikeEffectOrderPatch
+{
+    private const int ResourcefulStrikeCardId = 1411;
+    private const AppliedEffectType ToolsPlayedThisTurnMarker = AppliedEffectType.COUNT;
+
+    static void Prefix(CardData __instance)
+    {
+        if (__instance == null || __instance._CardID != ResourcefulStrikeCardId) return;
+        if (__instance._Effects.Count != 2) return;
+
+        var firstEffect = __instance._Effects[0];
+        var secondEffect = __instance._Effects[1];
+
+        bool firstIsDamage = firstEffect._Mode == EffectMode.Damage;
+        bool secondIsPowerful =
+            secondEffect._Mode == EffectMode.ApplyEffectThisTurn
+            && secondEffect._AppliedEffect == AppliedEffectType.Powerful
+            && secondEffect._Modifiers == EffectModifiers.ScalePerStrikePlayed
+            && secondEffect._ConditionEffect == ToolsPlayedThisTurnMarker;
+
+        if (!firstIsDamage || !secondIsPowerful) return;
+
+        __instance._Effects.RemoveAt(1);
+        __instance._Effects.RemoveAt(0);
+        __instance._Effects.Add(secondEffect);
+        __instance._Effects.Add(firstEffect);
+    }
+}
+
 // Placeholder for the fully rewritten Resourceful Strike description.
 [HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]
 public static class ResourcefulStrikeDescriptionPatch
 {
     private const int ResourcefulStrikeCardId = 1411;
-    private const string NewDescription = "Gain Powerful ({1}) this turn per Tool played this turn. Deal {0} damage to the first enemy.";
+    private const string NewDescription = "Gain Powerful ({0}) this turn per Tool played this turn. Deal {1} damage to the first enemy.";
 
     static void Prefix(CardData __instance)
     {
