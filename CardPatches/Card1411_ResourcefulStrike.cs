@@ -83,15 +83,6 @@ public static class ResourcefulStrikeEffectOrderPatch
         var firstEffect = __instance._Effects[0];
         var secondEffect = __instance._Effects[1];
 
-        bool firstIsDamage = firstEffect._Mode == EffectMode.Damage;
-        bool secondIsPowerful =
-            secondEffect._Mode == EffectMode.ApplyEffectThisTurn
-            && secondEffect._AppliedEffect == AppliedEffectType.Powerful
-            && secondEffect._Modifiers == EffectModifiers.ScalePerStrikePlayed
-            && secondEffect._ConditionEffect == ToolsPlayedThisTurnMarker;
-
-        if (!firstIsDamage || !secondIsPowerful) return;
-
         __instance._Effects.RemoveAt(1);
         __instance._Effects.RemoveAt(0);
         __instance._Effects.Add(secondEffect);
