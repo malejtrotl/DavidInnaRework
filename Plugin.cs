@@ -62,6 +62,10 @@ public class Plugin : BasePlugin
         // Card 1423 "Caltrops" (see CardPatches/Card1423_Caltrops.cs)
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(CaltropsHitCountPatch));
 
+        // Card 1426 "Unstable Darkstone" (see CardPatches/Card1426_UnstableDarkstone.cs)
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(UnstableDarkstoneDispelPatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(UnstableDarkstoneDescriptionPatch));
+
         // Card 1427 "Inkwell and Quill" (see CardPatches/Card1427_InkwellAndQuill.cs)
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(InkwellAndQuillUpgradablePatch));
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(InkwellAndQuillUpgradedValuePatch));
