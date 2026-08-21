@@ -52,6 +52,7 @@ public static class ImprovisedStrikeEffectPatch
 public static class ImprovisedStrikeDescriptionPatch
 {
     private const int ImprovisedStrikeCardId = 1401;
+    private const int Cost = 1;
     private const string NewDescription =
         "Deal {0} damage to the first enemy. Draw one Improvised Strike when you play a Tool.";
 
@@ -60,5 +61,7 @@ public static class ImprovisedStrikeDescriptionPatch
         if (__instance == null || __instance._CardID != ImprovisedStrikeCardId) return;
 
         __instance._BaseDescription = NewDescription;
+        __instance._Cost = Cost;
+        __instance._CostUpgraded = Cost;
     }
 }

@@ -79,6 +79,7 @@ public static class ResourcefulStrikeEffectOrderPatch
     {
         if (__instance == null || __instance._CardID != ResourcefulStrikeCardId) return;
         if (__instance._Effects.Count != 2) return;
+        if (__instance._Effects[1]._ConditionEffect != ToolsPlayedThisTurnMarker) return;
 
         var firstEffect = __instance._Effects[0];
         var secondEffect = __instance._Effects[1];
@@ -95,11 +96,14 @@ public static class ResourcefulStrikeDescriptionPatch
 {
     private const int ResourcefulStrikeCardId = 1411;
     private const string NewDescription = "Gain Powerful ({0}) this turn per Tool played this turn. Deal {1} damage to the first enemy.";
+    private const int Cost = 1;
 
     static void Prefix(CardData __instance)
     {
         if (__instance == null || __instance._CardID != ResourcefulStrikeCardId) return;
 
         __instance._BaseDescription = NewDescription;
+        __instance._Cost = Cost;
+        __instance._CostUpgraded = Cost;
     }
 }
