@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using HarmonyLib;
-using Il2CppInterop.Runtime;
 using Rift;
 
 namespace DavidInnaRework.MechanicPatches;
@@ -12,68 +10,54 @@ namespace DavidInnaRework.MechanicPatches;
 //   _ConditionEffect = AppliedEffectType.COUNT   (marker/sentinel)
 //
 // For effects that match that pattern, GetFinalValue is overridden to:
-//   perToolValue * toolsPlayedThisTurnByOwner
+//   (int)perToolValue * toolsPlayedThisTurn
 //
-// toolsPlayedThisTurnByOwner is tracked from CombatManager.UseCard and reset
-// at CombatManager.StartPlayerTurn.
+// toolsPlayedThisTurn is tracked from CombatManager.UseCard and reset at
+// CombatManager.StartPlayerTurn.
 public static class ToolsPlayedThisTurnModifierEmulationState
 {
-    internal static readonly Dictionary<System.IntPtr, int> ToolsPlayedThisTurnByOwner = new();
+    internal static int ToolsPlayedThisTurn;
 }
 
 [HarmonyPatch(typeof(CombatManager), nameof(CombatManager.StartPlayerTurn))]
-public static class ToolsPlayedThisTurnResetPatch
+public static class ToolsPlayedThisTurnModifierResetPatch
 {
     static void Prefix()
     {
-        ToolsPlayedThisTurnModifierEmulationState.ToolsPlayedThisTurnByOwner.Clear();
+        ToolsPlayedThisTurnModifierEmulationState.ToolsPlayedThisTurn = 0;
     }
 }
 
 [HarmonyPatch(typeof(CombatManager), nameof(CombatManager.UseCard))]
-public static class ToolsPlayedThisTurnTrackUseCardPatch
+public static class ToolsPlayedThisTurnModifierTrackUseCardPatch
 {
-    static void Prefix(Card card, Entity castingEntity)
+    static void Prefix(Card card)
     {
-        if (card == null || castingEntity == null) return;
+        if (card == null) return;
 
         var cardData = card.Data;
         if (cardData == null || cardData._CardType != CardType.Tool) return;
 
-        var ownerPtr = IL2CPP.Il2CppObjectBaseToPtrNotNull(castingEntity);
-        if (ownerPtr == System.IntPtr.Zero) return;
-
-        if (!ToolsPlayedThisTurnModifierEmulationState.ToolsPlayedThisTurnByOwner.TryAdd(ownerPtr, 1))
-        {
-            ToolsPlayedThisTurnModifierEmulationState.ToolsPlayedThisTurnByOwner[ownerPtr]++;
-        }
+        ToolsPlayedThisTurnModifierEmulationState.ToolsPlayedThisTurn++;
     }
 }
 
 [HarmonyPatch(typeof(CardEffect), nameof(CardEffect.GetFinalValue))]
-public static class ToolsPlayedThisTurnGetFinalValuePatch
+public static class ToolsPlayedThisTurnModifierGetFinalValuePatch
 {
     // Marker for "treat ScalePerStrikePlayed as ScalePerToolPlayed".
-    private const AppliedEffectType ToolsPlayedThisTurnMarker = AppliedEffectType.COUNT;
+    private const AppliedEffectType ToolPlayedMarker = AppliedEffectType.COUNT;
 
     static void Postfix(CardEffect __instance, Card card, ref float __result)
     {
-        if (__instance == null) return;
+        if (__instance == null || card == null) return;
         if (__instance._Modifiers != EffectModifiers.ScalePerStrikePlayed) return;
-        if (__instance._ConditionEffect != ToolsPlayedThisTurnMarker) return;
+        if (__instance._ConditionEffect != ToolPlayedMarker) return;
 
-        var owner = card?.Owner;
-        if (owner == null)
+        var toolsPlayed = ToolsPlayedThisTurnModifierEmulationState.ToolsPlayedThisTurn;
+        if (toolsPlayed <= 0)
         {
-            __result = 0f;
-            return;
-        }
-
-        var ownerPtr = IL2CPP.Il2CppObjectBaseToPtrNotNull(owner);
-        if (ownerPtr == System.IntPtr.Zero
-            || !ToolsPlayedThisTurnModifierEmulationState.ToolsPlayedThisTurnByOwner.TryGetValue(ownerPtr, out var toolsPlayed))
-        {
-            __result = 0f;
+            __result = 0;
             return;
         }
 

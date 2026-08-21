@@ -19,9 +19,9 @@ public class Plugin : BasePlugin
         Log.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
 
         // Tool-played modifier emulation (see MechanicPatches/ToolPlayedThisTurnModifierEmulation.cs)
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ToolsPlayedThisTurnResetPatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ToolsPlayedThisTurnTrackUseCardPatch));
-        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ToolsPlayedThisTurnGetFinalValuePatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ToolsPlayedThisTurnModifierResetPatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ToolsPlayedThisTurnModifierTrackUseCardPatch));
+        new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ToolsPlayedThisTurnModifierGetFinalValuePatch));
 
         // Card 0052 "Block" (see CardPatches/Card0052_Block.cs)
         new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ShieldCardBuffPatch));
