@@ -2,46 +2,57 @@ using Rift;
 
 namespace DavidInnaRework.CardPatches;
 
-// Card 1409 originally reads:
-//   "Choose any enemy. Create 1 Tool, then 3 Tools if it has 3 or more debuff
-//    types, then 3 Tools if it has 5 or more debuff types."
-//
-// The baseline (unconditional) CreateTool effect goes from 1 to 2 Tools, for
-// both the unupgraded and upgraded versions. The two conditional CreateTool
-// effects are left untouched.
-//
-// Applied once via ApplyMutations(), invoked from
-// MechanicPatches/CardDataGameLoadInitializer.cs at real game-load time. The
-// card has THREE CreateTool effects, so the two conditional ones are
-// identified by their _Modifiers gates; anything else is treated as the
-// baseline effect. Discriminating by exclusion (rather than testing for
-// EffectModifiers.NONE) avoids depending on a modifier value that the
-// knowledge reference does not confirm exists.
+// Investigate, 1409
+// Choose any enemy. Create 2 Tool, then 2 Tools if it has 3 or more debuff types, then 2 Tools if it has 5 or more.
+// Choose any enemy. Create 2 Tool, then 3 Tools if it has 3 or more debuff types, then 3 Tools if it has 5 or more.
 public static class Card1409_Investigate
 {
     internal const int InvestigateCardId = 1409;
+
     private const int BaselineTools = 2;
+    private const int BaselineToolsUpgraded = 2;
+    private const int ToolsIf3PlusDebuffs = 2;
+    private const int ToolsIf3PlusDebuffsUpgraded = 3;
+    private const int ToolsIf5PlusDebuffs = 2;
+    private const int ToolsIf5PlusDebuffsUpgraded = 3;
+
     private const string NewDescription =
-        "Choose any enemy. Create {0} Tools, then {1} Tools if it has 3 or more debuff types, then {2} Tools if it has 5 or more debuff types.";
+        "Choose any enemy. Create {0} Tool, then {1} Tools if it has 3 or more debuff types, then {2} Tools if it has 5 or more.";
 
     public static void ApplyMutations(CardData cardData)
     {
         if (cardData == null || cardData._CardID != InvestigateCardId) return;
 
-        foreach (var effect in cardData._Effects)
+        cardData._Effects.Clear();
+
+        cardData._Effects.Add(new CardEffect
         {
-            if (effect._Mode != EffectMode.CreateTool) continue;
+            CardData = cardData,
+            _Mode = EffectMode.CreateTool,
+            _Targeting = EffectTargeting.Ranged,
+            _EffectValue = BaselineTools,
+            _EffectValueUpgraded = BaselineToolsUpgraded,
+        });
 
-            // Leave the two debuff-gated CreateTool effects alone.
-            if (effect._Modifiers == EffectModifiers.OnlyIfTargetHas3PlusDebuffs
-                || effect._Modifiers == EffectModifiers.OnlyIfTargetHas5PlusDebuffs)
-            {
-                continue;
-            }
+        cardData._Effects.Add(new CardEffect
+        {
+            CardData = cardData,
+            _Mode = EffectMode.CreateTool,
+            _Modifiers = EffectModifiers.OnlyIfTargetHas3PlusDebuffs,
+            _Targeting = EffectTargeting.Previous,
+            _EffectValue = ToolsIf3PlusDebuffs,
+            _EffectValueUpgraded = ToolsIf3PlusDebuffsUpgraded,
+        });
 
-            effect._EffectValue = BaselineTools;
-            effect._EffectValueUpgraded = BaselineTools;
-        }
+        cardData._Effects.Add(new CardEffect
+        {
+            CardData = cardData,
+            _Mode = EffectMode.CreateTool,
+            _Modifiers = EffectModifiers.OnlyIfTargetHas5PlusDebuffs,
+            _Targeting = EffectTargeting.Previous,
+            _EffectValue = ToolsIf5PlusDebuffs,
+            _EffectValueUpgraded = ToolsIf5PlusDebuffsUpgraded,
+        });
 
         cardData._BaseDescription = NewDescription;
     }

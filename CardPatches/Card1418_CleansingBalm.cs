@@ -2,14 +2,14 @@ using Rift;
 
 namespace DavidInnaRework.CardPatches;
 
-// Card 1418 "Cleansing Balm": bumps the Cleanse count from 1 to 2 (3
-// upgraded).
-//
-// Applied once via ApplyMutations(), invoked from
-// MechanicPatches/CardDataGameLoadInitializer.cs at real game-load time.
+// Cleansing Balm, 1418
+// Reduce all statuses by -6. Cleanse yourself 2 times.
+// Reduce all statuses by -8. Cleanse yourself 3 times.
 public static class Card1418_CleansingBalm
 {
     internal const int CleansingBalmCardId = 1418;
+    private const int ReduceAllStatuses = -6;
+    private const int ReduceAllStatusesUpgraded = -8;
     private const int CleanseCount = 2;
     private const int UpgradedCleanseCount = 3;
     private const string NewDescription = "Reduce all statuses by {0}. Cleanse yourself {1} times.";
@@ -18,13 +18,25 @@ public static class Card1418_CleansingBalm
     {
         if (cardData == null || cardData._CardID != CleansingBalmCardId) return;
 
-        foreach (var effect in cardData._Effects)
-        {
-            if (effect._Mode != EffectMode.Cleanse) continue;
+        cardData._Effects.Clear();
 
-            effect._EffectValue = CleanseCount;
-            effect._EffectValueUpgraded = UpgradedCleanseCount;
-        }
+        cardData._Effects.Add(new CardEffect
+        {
+            CardData = cardData,
+            _Mode = EffectMode.ModifyAllStatuses,
+            _Targeting = EffectTargeting.Self,
+            _EffectValue = ReduceAllStatuses,
+            _EffectValueUpgraded = ReduceAllStatusesUpgraded,
+        });
+
+        cardData._Effects.Add(new CardEffect
+        {
+            CardData = cardData,
+            _Mode = EffectMode.Cleanse,
+            _Targeting = EffectTargeting.Self,
+            _EffectValue = CleanseCount,
+            _EffectValueUpgraded = UpgradedCleanseCount,
+        });
 
         cardData._BaseDescription = NewDescription;
     }

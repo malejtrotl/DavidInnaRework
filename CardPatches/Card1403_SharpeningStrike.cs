@@ -2,18 +2,14 @@ using Rift;
 
 namespace DavidInnaRework.CardPatches;
 
-// Card 1403 "Sharpening Strike" keeps all of its existing effects, and gains
-// an additional IncreaseDamage effect for 2 (3 upgraded).
-//
-// Applied once via ApplyMutations(), invoked from
-// MechanicPatches/CardDataGameLoadInitializer.cs at real game-load time.
-//
-// CardData = cardData is required on the new effect: effects loaded from the
-// game's assets already have this owner back-reference, but `new CardEffect`
-// does not, and a missing owner causes a NullReferenceException at runtime.
+// Sharpening Strike, 1403
+// Deal 3 damage to the first enemy. Increase the damage of this and all Strikes in your hand by 2.
+// Deal 3 damage to the first enemy. Increase the damage of this and all Strikes in your hand by 3.
 public static class Card1403_SharpeningStrike
 {
     internal const int SharpeningStrikeCardId = 1403;
+    private const int DamageValue = 3;
+    private const int DamageValueUpgraded = 3;
     private const int DamageIncrease = 2;
     private const int DamageIncreaseUpgraded = 3;
     private const string NewDescription = "Deal {0} damage to the first enemy. Increase the damage of this and all Strikes in your hand by {1}.";
@@ -22,13 +18,16 @@ public static class Card1403_SharpeningStrike
     {
         if (cardData == null || cardData._CardID != SharpeningStrikeCardId) return;
 
-        foreach (var existingEffect in cardData._Effects)
+        cardData._Effects.Clear();
+
+        cardData._Effects.Add(new CardEffect
         {
-            if (existingEffect._Mode == EffectMode.IncreaseDamage)
-            {
-                return;
-            }
-        }
+            CardData = cardData,
+            _Mode = EffectMode.Damage,
+            _Targeting = EffectTargeting.Melee,
+            _EffectValue = DamageValue,
+            _EffectValueUpgraded = DamageValueUpgraded,
+        });
 
         cardData._Effects.Add(new CardEffect
         {

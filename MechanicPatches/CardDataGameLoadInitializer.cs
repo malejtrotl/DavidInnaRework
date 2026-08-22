@@ -65,7 +65,18 @@ public static class CardDataGameLoadInitializerPatch
         ApplyIfPresent(cardDataDict, Card1408_FranticScouring.FranticScouringCardId, Card1408_FranticScouring.ApplyMutations);
         ApplyIfPresent(cardDataDict, Card1409_Investigate.InvestigateCardId, Card1409_Investigate.ApplyMutations);
         ApplyIfPresent(cardDataDict, Card1411_ResourcefulStrike.ResourcefulStrikeCardId, Card1411_ResourcefulStrike.ApplyMutations);
-        ApplyIfPresent(cardDataDict, Card1414_AdventurersLog.AdventurersLogCardId, Card1414_AdventurersLog.ApplyMutations);
+
+        // Card 1414 needs a second live CardData instance (Inkwell and
+        // Quill's) to populate its CreateAndDraw effect's _Prefab, so it
+        // can't go through the single-CardData ApplyIfPresent helper.
+        if (cardDataDict.ContainsKey(Card1414_AdventurersLog.AdventurersLogCardId)
+            && cardDataDict.ContainsKey(Card1427_InkwellAndQuill.InkwellAndQuillCardId))
+        {
+            Card1414_AdventurersLog.ApplyMutations(
+                cardDataDict[Card1414_AdventurersLog.AdventurersLogCardId],
+                cardDataDict[Card1427_InkwellAndQuill.InkwellAndQuillCardId]);
+        }
+
         ApplyIfPresent(cardDataDict, Card1418_CleansingBalm.CleansingBalmCardId, Card1418_CleansingBalm.ApplyMutations);
         ApplyIfPresent(cardDataDict, Card1422_FireBomb.FireBombCardId, Card1422_FireBomb.ApplyMutations);
         ApplyIfPresent(cardDataDict, Card1423_Caltrops.CaltropsCardId, Card1423_Caltrops.ApplyMutations);

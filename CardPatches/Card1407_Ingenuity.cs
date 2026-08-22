@@ -2,11 +2,9 @@ using Rift;
 
 namespace DavidInnaRework.CardPatches;
 
-// Card 1407 "Ingenuity": new cost, different tool count, and completely new
-// description text.
-//
-// Applied once via ApplyMutations(), invoked from
-// MechanicPatches/CardDataGameLoadInitializer.cs at real game-load time.
+// Ingenuity, 1407
+// Create 3 Tools, then upgrade all Tool cards in hand.
+// Create 3 Tools, then upgrade all Tool cards in hand.
 public static class Card1407_Ingenuity
 {
     internal const int IngenuityCardId = 1407;
@@ -20,13 +18,23 @@ public static class Card1407_Ingenuity
     {
         if (cardData == null || cardData._CardID != IngenuityCardId) return;
 
-        foreach (var effect in cardData._Effects)
-        {
-            if (effect._Mode != EffectMode.CreateTool) continue;
+        cardData._Effects.Clear();
 
-            effect._EffectValue = ToolsCreated;
-            effect._EffectValueUpgraded = ToolsCreatedUpgraded;
-        }
+        cardData._Effects.Add(new CardEffect
+        {
+            CardData = cardData,
+            _Mode = EffectMode.CreateTool,
+            _Targeting = EffectTargeting.Self,
+            _EffectValue = ToolsCreated,
+            _EffectValueUpgraded = ToolsCreatedUpgraded,
+        });
+
+        cardData._Effects.Add(new CardEffect
+        {
+            CardData = cardData,
+            _Mode = EffectMode.UpgradeTools,
+            _Targeting = EffectTargeting.Self,
+        });
 
         cardData._Cost = Cost;
         cardData._CostUpgraded = CostUpgraded;

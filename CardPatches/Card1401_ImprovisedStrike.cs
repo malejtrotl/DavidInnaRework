@@ -2,15 +2,12 @@ using Rift;
 
 namespace DavidInnaRework.CardPatches;
 
-// Card 1401 "Improvised Strike" is rebuilt as:
-//   - Deal 2x2 damage to the first enemy (2x3 upgraded).
-//   - Draw one Improvised Strike when a Tool is played.
+// Improvised Strike, 1401
+// Deal 2x2 damage to the first enemy. Draw one Improvised Strike when you play a Tool.
+// Deal 2x3 damage to the first enemy. Draw one Improvised Strike when you play a Tool.
 //
 // The draw trigger is provided by the generic NoFatigueDrawOnToolPlayed
 // mechanic, configured for this card in Plugin.Load().
-//
-// Applied once via ApplyMutations(), invoked from
-// MechanicPatches/CardDataGameLoadInitializer.cs at real game-load time.
 public static class Card1401_ImprovisedStrike
 {
     internal const int ImprovisedStrikeCardId = 1401;
@@ -27,6 +24,7 @@ public static class Card1401_ImprovisedStrike
         if (cardData == null || cardData._CardID != ImprovisedStrikeCardId) return;
 
         cardData._Effects.Clear();
+
         cardData._Effects.Add(new CardEffect
         {
             CardData = cardData,
