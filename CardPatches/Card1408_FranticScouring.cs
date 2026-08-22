@@ -13,7 +13,7 @@ public static class Card1408_FranticScouring
     private const int ToolsCreatedUpgraded = 4;
     private const int ToolsCreatedOnDiscard = 2;
     private const int ToolsCreatedOnDiscardUpgraded = 3;
-    private const string NewDescription = "Discard {0} to create {1} Tools.Create {2} Tools when discarded.";
+    private const string NewDescription = "Discard {0} to create {1} Tools. Create {2} Tools when discarded.";
 
     public static void ApplyMutations(CardData cardData)
     {
