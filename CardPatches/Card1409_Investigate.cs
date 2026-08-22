@@ -3,8 +3,8 @@ using Rift;
 namespace DavidInnaRework.CardPatches;
 
 // Investigate, 1409
-// Choose any enemy. Create 2 Tool, then 2 Tools if it has 3 or more debuff types, then 2 Tools if it has 5 or more.
-// Choose any enemy. Create 2 Tool, then 3 Tools if it has 3 or more debuff types, then 3 Tools if it has 5 or more.
+// Choose any enemy. Create 2 Tools, then 2 Tools if it has 3 or more debuff types, then 2 Tools if it has 5 or more.
+// Choose any enemy. Create 2 Tools, then 3 Tools if it has 3 or more debuff types, then 3 Tools if it has 5 or more.
 public static class Card1409_Investigate
 {
     internal const int InvestigateCardId = 1409;
@@ -17,7 +17,7 @@ public static class Card1409_Investigate
     private const int ToolsIf5PlusDebuffsUpgraded = 3;
 
     private const string NewDescription =
-        "Choose any enemy. Create {0} Tool, then {1} Tools if it has 3 or more debuff types, then {2} Tools if it has 5 or more.";
+        "Choose any enemy. Create {0} Tools, then {1} Tools if it has 3 or more debuff types, then {2} Tools if it has 5 or more.";
 
     public static void ApplyMutations(CardData cardData)
     {

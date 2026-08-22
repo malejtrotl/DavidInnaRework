@@ -3,8 +3,8 @@ using Rift;
 namespace DavidInnaRework.CardPatches;
 
 // Improvised Strike, 1401
-// Deal 2x2 damage to the first enemy. Draw one Improvised Strike when you play a Tool.
-// Deal 2x3 damage to the first enemy. Draw one Improvised Strike when you play a Tool.
+// Deal 2x2 damage to the first enemy. Draw one Improvised Strike when you play a Tool without increasing the Fatigue Counter..
+// Deal 2x3 damage to the first enemy. Draw one Improvised Strike when you play a Tool without increasing the Fatigue Counter..
 //
 // The draw trigger is provided by the generic NoFatigueDrawOnToolPlayed
 // mechanic, configured for this card in Plugin.Load().
@@ -17,7 +17,7 @@ public static class Card1401_ImprovisedStrike
     private const int DamageCountUpgraded = 3;
     private const int Cost = 1;
     private const string NewDescription =
-        "Deal {0} damage to the first enemy. Draw one Improvised Strike when you play a Tool.";
+        "Deal {0} damage to the first enemy. Draw one Improvised Strike when you play a Tool without increasing the Fatigue Counter.";
 
     public static void ApplyMutations(CardData cardData)
     {
