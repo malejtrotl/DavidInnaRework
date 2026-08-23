@@ -4,11 +4,7 @@ using Rift;
 namespace DavidInnaRework.MechanicPatches;
 
 // Generic, multi-trigger "draw a specific card when a card of a given
-// CardType is played" mechanic. Replaces the earlier
-// NoFatigueDrawOnToolPlayed.cs / DrawOnToolPlayed.cs / DrawOnToolPlayedShared.cs
-// trio, which could only safely support cards sharing one trigger CardType
-// at a time before their shared marker bit caused cross-contamination (see
-// "card modification knowledge.md" for the full background).
+// CardType is played" mechanic.
 //
 // Ownership (which CardType triggers which target card(s), and whether each
 // target's draw should skip fatigue) is tracked entirely on the plugin's own
@@ -17,11 +13,8 @@ namespace DavidInnaRework.MechanicPatches;
 // target cards) can coexist without cross-contamination.
 //
 // CardModifiers has no spare bit for a private marker beyond the single
-// unclaimed one (value 1 — confirmed via dnSpy: the enum's declared members
-// jump straight from NONE = 0 to FreeIfEffectOnTarget = 2, and the enum
-// itself is a plain 32-bit int with every other bit already claimed by a
-// real named modifier). This mechanic reuses that one bit, but — unlike the
-// earlier design — never leaves it set on any card outside the exact
+// unclaimed one. This mechanic reuses that one bit, but never
+// leaves it set on any card outside the exact
 // instant Entity.DrawCardsWithModifier needs it: the bit (and
 // NoFatigueSpecialDraw, for targets that want it) is set immediately before
 // that call and cleared immediately after, on only the specific cards
@@ -31,9 +24,6 @@ namespace DavidInnaRework.MechanicPatches;
 // narrow window.
 public static class DrawOnCardPlayedRegistry
 {
-    // Private marker bit standing in for a "DrawOnCardPlayed" trigger flag.
-    // Only ever set transiently, immediately before a DrawCardsWithModifier
-    // call, and cleared again immediately after — never left set at rest.
     internal const CardModifiers DrawMarker = (CardModifiers)1;
 
     private readonly struct Target

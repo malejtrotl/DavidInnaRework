@@ -3,13 +3,8 @@ using Rift;
 namespace DavidInnaRework.CardPatches;
 
 // Resourceful Strike, 1411
-// Increase the damage of Strikes in your hand by 1 per Tool you played this turn. Deal 2x3 damage to the first enemy.
-// Increase the damage of Strikes in your hand by 1 per Tool you played this turn. Deal 2x5 damage to the first enemy.
-//
-// Balance update: this card used to grant temporary Powerful scaling per
-// Tool played this turn. It now sharpens instead — the same
-// ScalePerToolPlayed marker convention drives an IncreaseDamage effect
-// instead of an ApplyEffectThisTurn (Powerful) effect.
+// Increase the damage of Strikes in your hand by 1 per Tool played this turn. Deal 2x3 damage to the first enemy.
+// Increase the damage of Strikes in your hand by 1 per Tool played this turn. Deal 2x5 damage to the first enemy.
 public static class Card1411_ResourcefulStrike
 {
     internal const int ResourcefulStrikeCardId = 1411;
@@ -25,7 +20,7 @@ public static class Card1411_ResourcefulStrike
     private const AppliedEffectType ToolsPlayedThisTurnMarker = AppliedEffectType.COUNT;
 
     private const string NewDescription =
-        "Increase the damage of Strikes in your hand by {0} per Tool you played this turn. Deal {1} damage to the first enemy.";
+        "Increase the damage of Strikes in your hand by {0} per Tool played this turn. Deal {2} damage to the first enemy.";
 
     public static void ApplyMutations(CardData cardData)
     {
@@ -37,6 +32,17 @@ public static class Card1411_ResourcefulStrike
         {
             CardData = cardData,
             _Mode = EffectMode.IncreaseDamage,
+            _Targeting = EffectTargeting.Self,
+            _Modifiers = EffectModifiers.ScalePerStrikePlayed,
+            _ConditionEffect = ToolsPlayedThisTurnMarker,
+            _EffectValue = DamageIncreasePerToolPlayed,
+            _EffectValueUpgraded = DamageIncreasePerToolPlayedUpgraded,
+        });
+
+        cardData._Effects.Add(new CardEffect
+        {
+            CardData = cardData,
+            _Mode = EffectMode.IncreaseStrikeDamage,
             _Targeting = EffectTargeting.Self,
             _Modifiers = EffectModifiers.ScalePerStrikePlayed,
             _ConditionEffect = ToolsPlayedThisTurnMarker,

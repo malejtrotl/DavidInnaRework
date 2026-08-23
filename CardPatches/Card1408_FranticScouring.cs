@@ -4,7 +4,7 @@ namespace DavidInnaRework.CardPatches;
 
 // Frantic Scouring, 1408
 // Discard 1 to create 3 Tools. Create 1 Tool when discarded.
-// Discard 1 to create 4 Tools. Create 2 Tools when discarded.
+// Discard 1 to create 4 Tools. Create 2 Tool when discarded.
 public static class Card1408_FranticScouring
 {
     internal const int FranticScouringCardId = 1408;
@@ -13,7 +13,7 @@ public static class Card1408_FranticScouring
     private const int ToolsCreatedUpgraded = 4;
     private const int ToolsCreatedOnDiscard = 1;
     private const int ToolsCreatedOnDiscardUpgraded = 2;
-    private const string NewDescription = "Discard {0} to create {1} Tools. Create {2} Tools when discarded.";
+    private const string NewDescription = "Discard {0} to create {1} Tools. Create {2} Tool when discarded.";
 
     public static void ApplyMutations(CardData cardData)
     {
