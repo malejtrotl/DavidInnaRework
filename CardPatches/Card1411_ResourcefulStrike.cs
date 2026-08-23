@@ -3,15 +3,20 @@ using Rift;
 namespace DavidInnaRework.CardPatches;
 
 // Resourceful Strike, 1411
-// Gain Powerful (1) this turn per Tool you played this turn. Deal 2x3 damage to the first enemy.
-// Gain Powerful (1) this turn per Tool you played this turn. Deal 2x5 damage to the first enemy.
+// Increase the damage of Strikes in your hand by 1 per Tool you played this turn. Deal 2x3 damage to the first enemy.
+// Increase the damage of Strikes in your hand by 1 per Tool you played this turn. Deal 2x5 damage to the first enemy.
+//
+// Balance update: this card used to grant temporary Powerful scaling per
+// Tool played this turn. It now sharpens instead — the same
+// ScalePerToolPlayed marker convention drives an IncreaseDamage effect
+// instead of an ApplyEffectThisTurn (Powerful) effect.
 public static class Card1411_ResourcefulStrike
 {
     internal const int ResourcefulStrikeCardId = 1411;
     private const int Cost = 1;
 
-    private const int PowerfulPerToolPlayed = 1;
-    private const int PowerfulPerToolPlayedUpgraded = 1;
+    private const int DamageIncreasePerToolPlayed = 1;
+    private const int DamageIncreasePerToolPlayedUpgraded = 1;
     private const int DamageValue = 2;
     private const int DamageValueUpgraded = 2;
     private const int DamageCount = 3;
@@ -20,7 +25,7 @@ public static class Card1411_ResourcefulStrike
     private const AppliedEffectType ToolsPlayedThisTurnMarker = AppliedEffectType.COUNT;
 
     private const string NewDescription =
-        "Gain Powerful ({0}) this turn per Tool you played this turn. Deal {1} damage to the first enemy.";
+        "Increase the damage of Strikes in your hand by {0} per Tool you played this turn. Deal {1} damage to the first enemy.";
 
     public static void ApplyMutations(CardData cardData)
     {
@@ -31,13 +36,12 @@ public static class Card1411_ResourcefulStrike
         cardData._Effects.Add(new CardEffect
         {
             CardData = cardData,
-            _Mode = EffectMode.ApplyEffectThisTurn,
-            _AppliedEffect = AppliedEffectType.Powerful,
+            _Mode = EffectMode.IncreaseDamage,
             _Targeting = EffectTargeting.Self,
             _Modifiers = EffectModifiers.ScalePerStrikePlayed,
             _ConditionEffect = ToolsPlayedThisTurnMarker,
-            _EffectValue = PowerfulPerToolPlayed,
-            _EffectValueUpgraded = PowerfulPerToolPlayedUpgraded,
+            _EffectValue = DamageIncreasePerToolPlayed,
+            _EffectValueUpgraded = DamageIncreasePerToolPlayedUpgraded,
         });
 
         cardData._Effects.Add(new CardEffect

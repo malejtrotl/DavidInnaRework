@@ -3,13 +3,13 @@ using Rift;
 namespace DavidInnaRework.CardPatches;
 
 // Ingenuity, 1407
-// Create 3 Tools, then upgrade all Tool cards in hand.
-// Create 3 Tools, then upgrade all Tool cards in hand.
+// Create 2 Tools, then upgrade all Tool cards in hand.
+// Create 2 Tools, then upgrade all Tool cards in hand.
 public static class Card1407_Ingenuity
 {
     internal const int IngenuityCardId = 1407;
-    private const int ToolsCreated = 3;
-    private const int ToolsCreatedUpgraded = 3;
+    private const int ToolsCreated = 2;
+    private const int ToolsCreatedUpgraded = 2;
     private const int Cost = 4;
     private const int CostUpgraded = 2;
     private const string NewDescription = "Create {0} Tools, then upgrade all Tool cards in hand.";

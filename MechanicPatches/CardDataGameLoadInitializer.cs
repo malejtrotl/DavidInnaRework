@@ -84,10 +84,11 @@ public static class CardDataGameLoadInitializerPatch
         ApplyIfPresent(cardDataDict, Card1427_InkwellAndQuill.InkwellAndQuillCardId, Card1427_InkwellAndQuill.ApplyMutations);
         ApplyIfPresent(cardDataDict, Card1432_BottledEctoplasm.BottledEctoplasmCardId, Card1432_BottledEctoplasm.ApplyMutations);
 
-        if (NoFatigueDrawOnToolPlayedState.TargetCardId >= 0)
-        {
-            ApplyIfPresent(cardDataDict, NoFatigueDrawOnToolPlayedState.TargetCardId, NoFatigueDrawOnToolPlayedState.ApplyMutations);
-        }
+        // Cache live CardData references for MechanicPatches/DrawOnCardPlayedRegistry.cs's
+        // registered targets — the registry itself never permanently mutates
+        // CardData, so this is purely a cache, not an ApplyMutations-style
+        // static mutation.
+        DrawOnCardPlayedRegistry.CacheCardData(cardDataDict);
     }
 
     private static void ApplyIfPresent(

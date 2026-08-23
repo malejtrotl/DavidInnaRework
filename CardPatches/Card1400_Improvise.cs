@@ -3,19 +3,19 @@ using Rift;
 namespace DavidInnaRework.CardPatches;
 
 // Improvise, 1400
-// Create 1 Tool. Lose 1 mana. If you have no mana, create 2 more Tools.
-// Create 1 Tool. Lose 2 mana. If you have no mana, create 3 more Tools.
+// Create 1 Tool. Lose 1 mana. If you have no mana, create 1 more Tool.
+// Create 1 Tool. Lose 2 mana. If you have no mana, create 2 more Tool.
 public static class Card1400_Improvise
 {
     internal const int ImproviseCardId = 1400;
     private const int ToolsCreated = 1;
     private const int ManaLost = 1;
     private const int ManaLostUpgraded = 2;
-    private const int BonusTools = 2;
-    private const int BonusToolsUpgraded = 3;
+    private const int BonusTools = 1;
+    private const int BonusToolsUpgraded = 2;
     private const int Cost = 1;
     private const string NewDescription =
-        "Create {0} Tool. Lose {1} mana. If you have no mana, create {2} more Tools.";
+        "Create {0} Tool. Lose {1} mana. If you have no mana, create {2} more Tool.";
 
     public static void ApplyMutations(CardData cardData)
     {

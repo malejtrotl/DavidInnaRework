@@ -8,7 +8,7 @@ namespace DavidInnaRework.CardPatches;
 public static class Card1427_InkwellAndQuill
 {
     internal const int InkwellAndQuillCardId = 1427;
-    private const int UpgradedCost = 2;
+    private const int UpgradedCost = 4;
     private const int CopiesCreated = 1;
     private const int CopiesCreatedUpgraded = 2;
     private const string NewDescription = "Create a Temporary copy of {0} non-Temporary card in your hand.";

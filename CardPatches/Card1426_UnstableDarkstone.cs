@@ -10,8 +10,8 @@ public static class Card1426_UnstableDarkstone
     internal const int UnstableDarkstoneCardId = 1426;
     private const int DoomApplied = 6;
     private const int DoomAppliedUpgraded = 6;
-    private const int DispelCount = 2;
-    private const int DispelCountUpgraded = 3;
+    private const int DispelCount = 1;
+    private const int DispelCountUpgraded = 2;
     private const int CostReduction = -1;
     private const int CostReductionUpgraded = -1;
     private const string NewDescription = "Give Doom ({0}) to any enemy and Dispel it {1} times. Reduce cost by {2} when you play a non-Mana card.";
