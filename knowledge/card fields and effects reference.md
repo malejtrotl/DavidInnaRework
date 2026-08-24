@@ -48,7 +48,7 @@ understanding, not for patching):
 `DescriptionLowercase`.
 
 Key methods:
-- `GetDescription(Card card = null, bool upgraded = false, bool highlightUpgrade = false, string languageOverride = null)` — the reliable, frequently-firing hook used throughout this project's patches (Prefix to rewrite fields before the game reads them).
+- `GetDescription(Card card = null, bool upgraded = false, bool highlightUpgrade = false, string languageOverride = null)` — reads `_BaseDescription` and fills in its placeholders with live/buffed values. This is also where the game lazily populates its own default `_Name`/`_BaseDescription` text the first time it's called for an untouched card — see the "Static mutations" section of `card modification knowledge.md` for why that matters for the timing of text edits.
 - `GetEffectiveTargeting(CardEffect effect, Entity owner)` — resolves an effect's actual targeting at runtime (useful if you need to understand/override targeting logic beyond just setting `_Targeting`).
 - `UnlockCard()` / `RefreshUnlocked()` — unlock state management.
 
@@ -60,25 +60,25 @@ object-initializer syntax works fine.
 
 | Field | Type | Notes |
 |---|---|---|
-| `_Mode` | `EffectMode` | What the effect *does* (Damage, Shield, ApplyEffect, Draw, CreateAndDraw, etc). See enum below — huge, ~150 values. |
-| `_AppliedEffect` | `AppliedEffectType` | Which buff/debuff this effect applies, when `_Mode` is one of the `ApplyEffect*` modes. See enum below. |
+| `_Mode` | `EffectMode` | What the effect *does* (Damage, Shield, ApplyEffect, Draw, CreateAndDraw, etc). See the full 149-member enum below. |
+| `_AppliedEffect` | `AppliedEffectType` | Which buff/debuff this effect applies, when `_Mode` is one of the `ApplyEffect*`/`TriggerEffect` modes. See enum below. **Tooltip style:** the `{N}` placeholder for this effect's applied value is written in parentheses in `_BaseDescription`, e.g. `Burn ({1})`, `Doom ({0})`, `Powerful ({0})` — unlike plain damage/count/mana placeholders, which are not parenthesized. |
 | `_ConditionEffect` | `AppliedEffectType` | The buff/debuff checked against, when `_Modifiers` includes a conditional modifier like `OnlyIfTargetHasEffect`. |
 | `_StatusType` | `StatusType` | Frost/Arcane/Shock, for status-manipulating effects (`ModifyStatus`, etc). |
-| `_Modifiers` | `EffectModifiers` | Conditional/scaling behavior layered on top of `_Mode` (e.g. `ScalePerEnemy`, `OnlyIfCritical`, `Condition`). See enum below — huge, ~150 values. Can likely hold multiple flags depending on how the game combines them (verify: check if this is a single enum value or a flags-style bitmask in practice). |
+| `_Modifiers` | `EffectModifiers` | One conditional/scaling enum value layered on top of `_Mode` (e.g. `ScalePerEnemy`, `OnlyIfCritical`, `Condition`). It is assigned directly, not combined as a flags mask. |
 | `_Targeting` | `EffectTargeting` | Who/what the effect targets (Self, Melee, Monsters, All, etc). See enum below. |
 | `_EffectValue` | `int` | The effect's base numeric value (damage amount, shield amount, buff stacks, etc). |
 | `_EffectValueUpgraded` | `int` | Value when the card is upgraded. |
 | `_EffectCount` | `int` | How many times the effect triggers/hits (e.g. multi-hit strikes). |
 | `_EffectCountUpgraded` | `int` | Hit count when upgraded. |
 | `_ShowEffectInInspector` | `bool` | Unity editor/inspector-only debug flag, no gameplay effect. |
-| `_VFXPrefab` | `UICardVFX` | Visual effect prefab reference — only exists on effects that were loaded from real game assets; can't easily fabricate this for a from-scratch effect. |
+| `_VFXPrefab` | `UICardVFX` | Visual effect prefab reference used by asset-loaded effects. Runtime-created effects work without assigning a VFX prefab. |
 | `_VFXPrefabID` | `int` | ID tied to the VFX prefab. |
-| `_Prefab` | `ScriptableObject` | **Card-reference field for "create card" effects** — e.g. `CreateAndDraw`/`CreateAndChoose`/etc likely read this to know *which* `CardData` to instantiate. Confirmed to accept an arbitrary `CardData` (including one built with `ScriptableObject.CreateInstance<CardData>()`) via `BlockCreatesNeedlePatch` in the sister `MyFirstPlugin` project. |
-| `CardData` (property) | `CardData` | Back-reference to the owning card. Read via `effect.CardData`, used in `ShieldCardBuffPatch`-style patches to filter effects belonging to a specific `_CardID`. **Required for runtime-created effects:** set `CardData = __instance` before adding the effect to `__instance._Effects`; list insertion does not initialize it, and a missing owner caused a Unity `NullReferenceException` when a new `TriggerEffect` executed. |
+| `_Prefab` | `ScriptableObject` | **Card-reference field for "create card" effects** — `CreateAndDraw`, `CreateAndChoose`, and related modes read it to determine which `CardData` to instantiate. It accepts an arbitrary `CardData`, including one built with `ScriptableObject.CreateInstance<CardData>()`. |
+| `CardData` (property) | `CardData` | Back-reference to the owning card. Read via `effect.CardData`, used to filter effects belonging to a specific `_CardID` when needed. **Required for runtime-created effects:** set `CardData = cardData` before adding the effect to `cardData._Effects` inside `ApplyMutations`; list insertion does not initialize it, and a missing owner caused a Unity `NullReferenceException` when a new `TriggerEffect` executed. |
 | `AffectedEntity` (property) | `Entity` | The entity the effect last affected (runtime state, not config). |
 
 Key methods:
-- `GetFinalValue(Card card, bool ignoreDoubleDamage = false, bool applyRandom = false, bool forceHalf = false, bool divide = true)` — computes the effect's actual value at use-time; patched in this project (`ShieldCardBuffPatch`) as a Prefix to override `_EffectValue` reads. **Fires once per effect**, so patches here need a discriminator (e.g. `_Mode`/`_AppliedEffect` check) if a card has multiple effects.
+- `GetFinalValue(Card card, bool ignoreDoubleDamage = false, bool applyRandom = false, bool forceHalf = false, bool divide = true)` — computes the effect's actual value at use-time. Most card patches in this project now set `_EffectValue`/`_EffectValueUpgraded` once via `ApplyMutations` (see `card modification knowledge.md`'s "Static mutations" section) instead of hooking this method; it is still hooked directly (as a Postfix) by mechanics that depend on live match state, e.g. `MechanicPatches/ToolsPlayedThisTurnModifierEmulation.cs`. **Fires once per effect**, so any patch here needs a discriminator (e.g. `_Mode`/`_AppliedEffect` check) if a card has multiple effects.
 - `GetEffectCount(Card card)` — resolves actual hit/trigger count.
 - `CalculateDamageDealt(...)`, `CalculateStatusApplied(...)` — the actual damage/status math, useful to understand scaling modifiers.
 - `CanBeUsedByCaster(...)`, `CanBeUsedOnTarget(...)`, `CanBeUsedOnTargetByCaster(...)` — playability/targeting validation checks.
@@ -87,7 +87,11 @@ Key methods:
 
 Grouped roughly by theme for readability (values shown are the enum's
 explicit numeric values from decompilation; unlisted ones auto-increment
-from the previous value):
+from the previous value).
+
+**Verified complete:** this listing was diffed against a full decompiled dump
+of the enum — all 149 members are present and their values match, so it can be
+treated as authoritative rather than a partial sample.
 
 **Core play effects**
 - `Damage = 1`, `DamageFixed = 125`
@@ -104,7 +108,7 @@ from the previous value):
 - `ModifyMaxHealth`, `ModifyMaxMana`
 - `AbsorbStatus = 18`
 - `RemoveStatusAndDealDamage = 20`
-- `Cleanse = 69` (likely removes debuffs), `Dispel = 96`, `RemoveEffect = 34`, `ClearEffect = 66`
+- `Cleanse = 69` removes debuffs, `Dispel = 96` dispels effects, `RemoveEffect = 34`, `ClearEffect = 66`
 
 **Card creation ("create card" effects — see `_Prefab` field)**
 - `CreateAstral = 93`
@@ -120,6 +124,10 @@ from the previous value):
 - `AddMana = 17`, `AddManaTo = 123`, `AddManaNextTurn = 23`, `ManaPercentage = 44`
 - `LoseManaEndTurn = 22`
 - `IncreaseMana = 112`
+
+There is no immediate "lose mana" mode. `LoseManaEndTurn` is deferred to end
+of turn, so immediate mana reduction uses `AddMana` with a negative
+`_EffectValue`.
 
 **Cost/value scaling & buffs to cards themselves**
 - `Increase = 21`, `IncreaseThisTurn = 100`, `IncreaseCannons = 92`, `IncreaseShield = 91`, `IncreaseDamage = 80`, `IncreaseDamageThisTurn = 82`, `IncreaseFixedDamageThisTurn = 143`, `IncreaseTopSpell = 56`, `IncreaseAllSpells = 83`, `IncreaseAllSpellsThisTurn = 109`, `IncreaseCost = 57`, `IncreaseCostThisTurn = 67`, `IncreaseFloodCostThisTurn = 108`, `IncreaseStrikeDamage = 74`, `IncreaseNextStrikeDamage = 146`, `IncreaseResonatingThisTurn = 105`, `IncreasePacts = 136`, `IncreaseHits = 127`
@@ -149,13 +157,13 @@ OnlyAllies, COUNT
 ```
 
 Notes:
-- No explicit "FirstEnemy" value exists. `Melee` is the best current guess
-  for "hits the first enemy" (used by melee/single-target strikes) — this
-  is **unverified**, revisit if a card's targeting doesn't match
-  expectations in-game.
-- `Monsters` likely means "all enemies" (compare with `Cleave`/`All`).
-- `Self` / `Player` — `Self` for effects on the caster/card owner, `Player`
-  likely specifically targets the player character (vs. summons/allies).
+- `Melee` targets the first enemy.
+- `Monsters` targets all enemies.
+- `Self` targets the caster/card owner; `Player` targets the player character.
+- `Previous` re-targets whatever the card's preceding effect targeted (e.g.
+  the enemy chosen by an earlier `Ranged` effect), rather than resolving a
+  new target. Used on Card 1409 ("Investigate") so its two debuff-gated
+  `CreateTool` effects apply to the same enemy chosen by the first effect.
 
 ## `AppliedEffectType` enum (buffs/debuffs, for `_AppliedEffect`/`_ConditionEffect`/`_ChangeArtOnEffect`/`_CardConditionEffect`)
 
@@ -189,9 +197,10 @@ buff/debuff): `NONE`, `Buff`, `Debuff`.
 
 ## `EffectModifiers` enum (conditional/scaling behavior, for `CardEffect._Modifiers`)
 
-Huge enum (`COUNT` sentinel, ~150 values) of conditions and scaling rules
-layered on top of an effect's base behavior. A non-exhaustive but
-representative slice, grouped by theme:
+Large enum (`COUNT` sentinel, ~150 values) of conditions and scaling rules
+layered on top of an effect's base behavior. The listing below is grouped by
+theme and covers the members relevant to this project's patches; it is not
+a full transcription of the enum.
 
 **Conditionals ("only if ...")**
 `OnlyIfTargetHasEffect`, `OnlyIfTargetHasntEffect`, `OnlyIfKilledTarget`,
@@ -230,6 +239,12 @@ per-unit amount and multiply by some count**
 `ScalePerDebuffOnTargetPerArea`, `ScalePerTotalEffectRankAllies`,
 `ScalePerCardDiscarded`, `ScaleWithManaGain`, `ScalePerDoom`
 
+The project emulates "scale per Tool played this turn" by using
+`ScalePerStrikePlayed` with `_ConditionEffect = AppliedEffectType.COUNT` as a
+private marker. The `ToolsPlayedThisTurn` mechanic counts Tool cards in
+`CombatManager.UseCard`, resets the count at `StartPlayerTurn`, and multiplies
+the effect's base/upgraded value by the count in a `GetFinalValue` Postfix.
+
 **Triggers/timing**
 `WhenDiscarded`, `EndOfTurn`, `FollowStrike`, `FollowSkill`, `FollowSpell`,
 `FollowMana`, `FollowTool`, `LastCard`, `WhenDrawn`,
@@ -240,13 +255,19 @@ per-unit amount and multiply by some count**
 
 **Misc**
 `CritIfEffect`, `EffectDoubleDamage`, `BonusCritical`, `CritIfShield`,
-`Condition` (generic — likely paired with `_ConditionEffect`), `Random`,
-`DoubleDamageEffectTarget`, `JustDidCritical`, `CannotBeEvaded`
+`Condition`, `Random`, `DoubleDamageEffectTarget`, `JustDidCritical`,
+`CannotBeEvaded`
 
-Note: it's not yet confirmed whether `_Modifiers` can hold multiple values
-simultaneously (flags/bitmask) or just one — the enum itself has no
-`[Flags]` attribute in the decompile, so likely single-value, but verify by
-inspecting a real multi-condition card if this becomes relevant.
+`Condition` gates an effect on the *preceding* effect in the same card's
+`_Effects` list succeeding — no `_ConditionEffect` companion value is
+needed. Confirmed on Card 1408 ("Frantic Scouring"): its on-play behavior is
+a `Discard` effect (discard 1 card) immediately followed by a `CreateTool`
+effect with `_Modifiers = EffectModifiers.Condition` and
+`_ConditionEffect = NONE` — the CreateTool effect only fires if the Discard
+effect actually discarded a card.
+
+`_Modifiers` stores one `EffectModifiers` value per effect. It is not a
+`[Flags]` bitmask and values are assigned directly.
 
 ## `StatusType` enum
 
@@ -285,12 +306,13 @@ multiple values can be combined with `|` (e.g.
 | Value | Bit | Meaning |
 |---|---|---|
 | `NONE` | 0 | No modifiers. |
+| private "draw on card played" marker | 1 | Reserved by this plugin as an internal transient marker; use `DrawOnCardPlayedRegistry.DrawMarker` rather than a numeric cast at call sites. Confirmed via dnSpy: the enum's declared members jump straight from `NONE = 0` to `FreeIfEffectOnTarget = 2`, so this value has no native meaning. `MechanicPatches/DrawOnCardPlayedRegistry.cs` only ever sets this bit (and `NoFatigueSpecialDraw`, for targets configured with `noFatigue: true`) momentarily, immediately before an `Entity.DrawCardsWithModifier` call, clearing both again immediately after — it is never left set on any card at rest, so it stays free for another plugin to reuse for its own unrelated purposes outside that narrow window. |
 | `FreeIfEffectOnTarget` | 2 | Card costs 0 if the target has a specific effect (paired with a condition effect elsewhere). |
 | `Removed` | 4 | Card has been removed (e.g. from deck). |
 | `Temporary` | 8 | Card is temporary (e.g. created mid-combat, removed after use/combat ends). |
 | `ShuffleBack` | 16 | Card shuffles back into the deck after use instead of going to discard. |
 | `SilanCannon` | 32 | Origin-specific mechanic flag (Silan's cannon system). |
-| `Recycled` | 64 | Card was recycled (goes back to deck instead of discard, possibly on a specific trigger). |
+| `Recycled` | 64 | Card was recycled: returns to the deck instead of the discard pile, set by the `Recycle` effect mode. |
 | `NoUpgrade` | 128 | Card cannot be upgraded. |
 | `UnplayableUnlessFree` | 256 | Card can only be played when its cost is reduced to 0. |
 | `Unplayable` | 512 | Card cannot be played at all (e.g. a purely passive/status card). |
@@ -305,15 +327,15 @@ multiple values can be combined with `|` (e.g.
 | `DrawOnNoShield` | 262144 | Draw a card when the target has no shield. |
 | `ShowEffectTooltip` | 524288 | Forces the effect tooltip to show (UI-only). |
 | `Stasis` | 1048576 | Card is in stasis (can't be discarded/interacted with normally). |
-| `Charred` | 2097152 | Card is charred (burn-related state, possibly reduces value or marks for removal). |
+| `Charred` | 2097152 | Card is charred: a burn-related state that reduces the card's effect value or marks it for removal. |
 | `Retained` | 4194304 | Card is retained in hand at end of turn (doesn't get discarded). |
 | `NoFatigueSpecialDraw` | 8388608 | This card's draw doesn't trigger/count toward fatigue. |
 | `DrawOnEvade` | 16777216 | Draw a card when an attack is evaded. |
-| `KeepInHand` | 33554432 | Card stays in hand (similar to `Retained` — verify distinction if both come up). |
+| `KeepInHand` | 33554432 | Card stays in hand during normal hand-management operations. `Retained` preserves a card specifically through end-of-turn discard. |
 | `DrawOn20DamageDealt` | 67108864 | Draw a card after dealing 20+ damage. |
 | `DrawOnDoom` | 134217728 | Draw a card when Doom triggers. |
 | `ReturnDiscard` | 268435456 | Card returns from discard pile (e.g. back to hand/deck). |
-| `Legendary` | 536870912 | Marks the card as Legendary (may affect UI/rarity display beyond `Rarity` enum). |
+| `Legendary` | 536870912 | Marks the card as Legendary and controls the corresponding card state and display. |
 | `FreeIfAlly` | 1073741824 | Card costs 0 if caster has an ally present. |
 | `CannotBeEvaded` | -2147483648 (bit 31 / `0x80000000`) | Card's effects cannot be evaded. |
 
@@ -339,15 +361,20 @@ buff/debuff, e.g. `PlayerHasCondition`/`PlayerHasntCondition`).
 | `Phase1` | 2048 | Requires combat to be in phase 1 (boss-fight phase gating). |
 | `Phase2` | 4096 | Requires combat to be in phase 2. |
 
-## Investigated but no longer open
+## Card registry note
 
-- `MetaInventory.AllCardData` — **confirmed dead/unused**: dnSpy's "Analyze
-  → Find usages" on the property getter showed 0 call sites anywhere in the
-  assembly. Adding cards to this list does NOT make them appear in the
-  collection screen or anywhere else. The real source for the
-  collection/deckbuilding card list is still unknown — likely a separate
-  asset-driven database (e.g. a `ScriptableObject` array loaded via Unity's
-  Resources/Addressables system) rather than a runtime-populated list.
-  Revisit with a full-assembly decompile + grep for "CardData[]"/
-  "List<CardData>" field usages outside `MetaInventory`, or dnSpy "Analyze"
-  on the `CardData` class itself to find all consuming types.
+`MetaInventory.AllCardData` is **not** the game's live card registry: it has
+0 call sites anywhere in the decompiled assembly, and mutating its entries
+never reaches the actual gameplay `CardData` instances.
+
+`ResourcesManager.Instance.CardData` (`Dictionary<int, CardData>`) **is** the
+real master registry — confirmed via native IL2CPP pointer comparison against
+the instance `CardData.GetDescription` is called on. It is fully populated
+(1530 entries) the moment the compiler-generated `MoveNext()` of
+`ResourcesManager.Initialize()`'s coroutine state machine returns `false` for
+the first time. Card patches read/mutate `CardData` instances from that
+dictionary, once, via
+[MechanicPatches/CardDataGameLoadInitializer.cs](/scripts/c#/bw_patching/DavidInnaRework/MechanicPatches/CardDataGameLoadInitializer.cs)
+— see the "Static mutations" section of `card modification knowledge.md` for
+the full explanation and the live-state exceptions that still require
+per-call Harmony patches.

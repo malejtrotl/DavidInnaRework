@@ -85,9 +85,7 @@ public static class CardDataGameLoadInitializerPatch
         ApplyIfPresent(cardDataDict, Card1432_BottledEctoplasm.BottledEctoplasmCardId, Card1432_BottledEctoplasm.ApplyMutations);
 
         // Cache live CardData references for MechanicPatches/DrawOnCardPlayedRegistry.cs's
-        // registered targets — the registry itself never permanently mutates
-        // CardData, so this is purely a cache, not an ApplyMutations-style
-        // static mutation.
+        // registered targets
         DrawOnCardPlayedRegistry.CacheCardData(cardDataDict);
     }
 

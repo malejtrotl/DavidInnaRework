@@ -1,411 +1,300 @@
 # Card Modification Knowledge (Breach Wanderers / BepInEx IL2CPP)
 
-This document explains how to modify card data (numbers, multiple numbers, and
-text) at runtime using Harmony patches in this project, with real examples
-taken from the project's card patch files.
+How to modify card data (effects, values, text) at runtime via Harmony
+patches in this project.
 
 ## Project structure
 
-Patches are organized **one file per card ID**, all under
-[CardPatches/](/scripts/c#/bw_patching/DavidInnaRework/CardPatches):
+One file per card ID under [CardPatches/](/scripts/c#/bw_patching/DavidInnaRework/CardPatches),
+e.g. `CardPatches/Card1432_BottledEctoplasm.cs`. Each file exposes a single
+`public static void ApplyMutations(CardData cardData)` — **no
+`[HarmonyPatch]` attribute on the card file itself** — that sets every field
+the card needs (effects, cost, `_Modifiers`, `_BaseDescription`) in one
+place. It's called exactly once, at real game-load time, from
+[MechanicPatches/CardDataGameLoadInitializer.cs](/scripts/c#/bw_patching/DavidInnaRework/MechanicPatches/CardDataGameLoadInitializer.cs)
+(see "Static mutations" below for why).
 
-- `CardPatches/Card0052_Block.cs` — all patches for Card ID 52 ("Block").
-- `CardPatches/Card1003_IceBlast.cs` — all patches for Card ID 1003 ("Ice Blast" / "Piercing Ice").
-
-Each file can contain multiple Harmony patch classes (value patches, text
-patches, name patches, new-effect patches, etc.) as long as they all target
-the same card ID. `Plugin.cs` stays a thin bootstrap file — it just imports
-`DavidInnaRework.CardPatches` and registers every patch class from every file
-in `Load()`, grouped with a comment per card:
+Reusable, cross-card behavior belongs in `MechanicPatches/`
+(`DavidInnaRework.MechanicPatches` namespace) and is registered in
+`Plugin.Load()`, which stays a thin bootstrap: configure any mechanic state
+first, then register the initializer:
 
 ```csharp
-// Card 0052 "Block" (see CardPatches/Card0052_Block.cs)
-new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ShieldCardBuffPatch));
-new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(BlockGrantsToughPatch));
-new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(BlockDescriptionPatch));
-
-// Card 1003 "Ice Blast" (see CardPatches/Card1003_IceBlast.cs)
-new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IceBlastPatch));
-new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IceBlastDescriptionPatch));
-new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(IceBlastNamePatch));
+DrawOnCardPlayedRegistry.Register(CardType.Tool, 1401, noFatigue: false);
+new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(CardDataGameLoadInitializerPatch));
 ```
 
-**When adding a new card:** create a new file `CardPatches/Card####_Name.cs`
-with the card's ID in the filename, put every patch class for that card in
-it, and register the new class(es) in `Plugin.Load()` under a new comment
-block for that card. This keeps each card's logic self-contained and easy to
-find, and avoids one giant file as more cards get patched.
+**Adding a new card:**
+1. Create `CardPatches/Card####_Name.cs` with an `internal const int` card ID
+   and a `public static void ApplyMutations(CardData cardData)`.
+2. Add one line in `CardDataGameLoadInitializerPatch.Postfix`:
+   `ApplyIfPresent(cardDataDict, Card####_Name.YourCardId, Card####_Name.ApplyMutations);`
+3. If it needs mechanic-specific state (e.g. `DrawOnCardPlayedRegistry.Register(...)`),
+   call that from `Plugin.Load()` *before* the initializer is registered.
 
-## Background / why we patch this way
-
-- Card data (values, conditions, etc.) is data-driven — stored in the game's
-  Unity assets, not hardcoded in code. We don't edit the asset files directly;
-  instead we patch it at runtime with Harmony.
-- The key hook point is `CardEffect.GetFinalValue(...)` — this is called
-  whenever the game needs the actual value of a card effect (for display,
-  combat calculation, tooltips, etc.).
-- We patch it with a **Prefix** that mutates the underlying fields directly
-  (`_EffectValue`, `_EffectValueUpgraded`, `_Modifiers`, `_ConditionEffect`,
-  etc.) instead of just changing the return value.
-  - **Important:** If you only change the *return value* (e.g. via a Postfix
-    with `ref __result`), the underlying field is untouched. Other systems
-    (like the UI) compare the "current" value against the "base" value stored
-    in the field and will show a green "modified/buffed" highlight, or may use
-    the un-patched value somewhere else. Mutating the field directly keeps
-    every code path consistent.
-- Each `CardEffect` is a **separate object** in the card's `_Effects` list.
-  `GetFinalValue` fires once per effect instance, so if a card has multiple
-  numeric effects, your patch runs multiple times (once per effect) and needs
-  a way to tell the effects apart (see "Editing multiple numbers" below).
-
-## Relevant data model (namespace `Rift`)
-
-- `MetaInventory.Instance.AllCardData` — `List<CardData>`, the master card
-  registry (read-only in practice — its setter can't be Harmony-patched
-  because IL2CPP field-accessor setters are not patchable).
-- `CardData`:
-  - `_CardID: int` — the card's numeric ID.
-  - `_Name` / `CardName: string`
-  - `_Effects: List<CardEffect>` — the card's effects.
-  - `_BaseDescription: string` — writable raw template string (still contains
-    the game's own number placeholders). `GetDescription()` reads this field
-    and populates the placeholders with live/buffed values each time it's
-    called. Editing this field via a Prefix on `GetDescription` (before the
-    original method runs) is the correct way to change tooltip text — see
-    "Editing card text" below.
-  - `GetDescription(Card card, bool upgraded, bool highlightUpgrade, string languageOverride): string`
-- `CardEffect`:
-  - `_EffectValue: int`, `_EffectValueUpgraded: int` — the base/upgraded
-    numeric values.
-  - `CardData: CardData` — back-reference to the owning card (use this to
-    check `_CardID`).
-  - `_Modifiers: EffectModifiers` — a single enum value (not a flag list)
-    describing a conditional/scaling modifier, e.g. `OnlyIfTargetHasEffect`,
-    `OnlyIfTargetHasShield`, `OnlyIfTargetHasNoShield`, `OnlyIfTargetHas10PlusShield`.
-  - `_ConditionEffect: AppliedEffectType` — companion value used by modifiers
-    like `OnlyIfTargetHasEffect` (e.g. `Frozen`). Not needed for self-contained
-    modifiers like `OnlyIfTargetHasNoShield`.
-  - `_StatusType: StatusType` — e.g. `Frost`, `Arcane`, `Shock`, used to
-    identify status-applying effects (as opposed to damage effects).
-  - `GetFinalValue(Card, Entity, bool, bool, bool): float` — the method we hook.
-
-## How to find these names for a new/different card
-
-1. Open dnSpy pointed at the game's interop DLL:
-   `C:\Program Files (x86)\Steam\steamapps\common\Breach Wanderers\BepInEx\interop\Assembly-CSharp.dll`
-2. Search for the relevant class (`CardEffect`, `CardData`, enums like
-   `EffectModifiers`, `AppliedEffectType`, `StatusType`) and note field/method
-   names. Remember: method **bodies** in interop DLLs are IL2CPP stub code,
-   not real logic — only the **signatures** (names/types) are trustworthy.
-3. To find a card's numeric ID, either inspect `CardData` instances at runtime
-   (e.g. temporarily log `_CardID` + `_Name` for all cards in
-   `MetaInventory.Instance.AllCardData`), or use known IDs from testing.
-
----
-
-## 1. Editing a single number on a card
-
-Example: Card ID `52`, bump its shield value.
+**Cross-card references** (e.g. a `CreateAndDraw` effect's `_Prefab`, which
+must point at another card's real `CardData` instance): give `ApplyMutations`
+an extra `CardData` parameter and call it directly from the initializer
+instead of through `ApplyIfPresent`. Card `1414` ("Adventurer's Log") does
+this for card `1427`'s ("Inkwell and Quill") `CardData`:
 
 ```csharp
-// Card with CardID 0052: bumps its shield effect value from 12 to 50.
-// We patch CardEffect.GetFinalValue (called whenever the game computes the
-// actual value of a card effect, e.g. for display or applying the effect)
-// with a Prefix that fixes up the underlying _EffectValue field the first
-// time it sees the target card. Because we mutate the actual field (not just
-// the return value), every downstream system reads the new value directly,
-// so no "modified" indicator (e.g. green highlight) is triggered.
-[HarmonyPatch(typeof(CardEffect), nameof(CardEffect.GetFinalValue))]
-public static class ShieldCardBuffPatch
-{
-    private const int TargetCardId = 52;
-    private const int NewValue = 50;
+public static void ApplyMutations(CardData cardData, CardData inkwellAndQuillCardData)
 
-    static void Prefix(CardEffect __instance)
+// MechanicPatches/CardDataGameLoadInitializer.cs
+if (cardDataDict.ContainsKey(Card1414_AdventurersLog.AdventurersLogCardId)
+    && cardDataDict.ContainsKey(Card1427_InkwellAndQuill.InkwellAndQuillCardId))
+{
+    Card1414_AdventurersLog.ApplyMutations(
+        cardDataDict[Card1414_AdventurersLog.AdventurersLogCardId],
+        cardDataDict[Card1427_InkwellAndQuill.InkwellAndQuillCardId]);
+}
+```
+
+Call order between the two doesn't matter: `_Prefab` stores a live object
+reference, not a copy, so it reflects whatever the other card's own
+`ApplyMutations` does to it regardless of which runs first.
+
+## Static mutations: apply once, at real game-load time
+
+Card values/effects/text are mutated **once**, at real game-load time,
+instead of via per-call Harmony prefixes on `GetFinalValue`/`GetEffectCount`/
+`GetDescription` (which is how early patches in this project worked, and
+still how anything depending on *live match state* has to work — see the
+bottom of this section).
+
+**`MetaInventory.Instance.AllCardData` does not work as a mutation target.**
+It compiles and runs with no errors, but has no effect in-game — dnSpy
+confirms **0 call sites** for its getter anywhere in the assembly. It is not
+the live database actual `Card` instances read from.
+
+**What works: `Rift.ResourcesManager.Instance.CardData`** (`Dictionary<int, CardData>`),
+confirmed via native pointer comparison to hold the exact same live
+`CardData` objects the game uses everywhere. Its getter/setter are plain
+field accessors (unpatchable), and `IEnumerator Initialize()` can't be
+Postfixed directly (a Postfix on a coroutine-returning method fires when the
+state machine is *created*, not when it *finishes*). The fix: patch the
+compiler-generated state machine's `MoveNext()`, which *is* a genuine
+native-invoked method, and check for `__result == false` (returned exactly
+once, on the frame the coroutine finishes) — at that point `_Effects`/
+`_EffectValue`/`_Modifiers`/etc. are fully populated.
+
+**Text works too, but with a timing caveat.** At that same `MoveNext`-finish
+moment, `_Name`/`_BaseDescription` are still **empty strings** for untouched
+cards — the game populates its own default text lazily, inside
+`GetDescription`'s first call for that card. But setting `_BaseDescription`
+to custom text *before* that first call sticks permanently (the game's own
+lazy-population logic must itself check "is this still empty?" first) — so
+text mutations belong in the same one-time hook as effect mutations.
+**Consequence: a partial `.Replace()` on the existing template does NOT
+work here** — it's still empty at this point, so `.Replace()` silently does
+nothing. Always write the complete new template as a literal string instead.
+
+```csharp
+// MechanicPatches/CardDataGameLoadInitializer.cs
+[HarmonyPatch(typeof(ResourcesManager._Initialize_d__12), nameof(ResourcesManager._Initialize_d__12.MoveNext))]
+public static class CardDataGameLoadInitializerPatch
+{
+    private static bool _initialized;
+
+    static void Postfix(ResourcesManager._Initialize_d__12 __instance, bool __result)
     {
-        var cardData = __instance.CardData;
-        if (cardData == null || cardData._CardID != TargetCardId) return;
-        __instance._EffectValue = NewValue;
-        __instance._EffectValueUpgraded = NewValue * 2;
+        if (_initialized) return;
+        if (__result) return; // coroutine still running - wait for the finishing frame.
+
+        _initialized = true;
+
+        var cardDataDict = __instance?.__4__this?.CardData; // __4__this = generated back-reference to ResourcesManager
+        if (cardDataDict == null) return;
+
+        // Look up each target card by ID and call its ApplyMutations(CardData).
     }
 }
 ```
 
-Steps:
-1. `[HarmonyPatch(typeof(CardEffect), nameof(CardEffect.GetFinalValue))]` on a
-   static class.
-2. Add a static `Prefix(CardEffect __instance)` method.
-3. Get the owning card via `__instance.CardData`, guard on `_CardID`.
-4. Set `_EffectValue` (base) and `_EffectValueUpgraded` (upgraded/leveled
-   version) directly.
-5. Register the patch class in `Plugin.Load()`:
-   `new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(ShieldCardBuffPatch));`
+**What still has to stay a live per-call/per-event Harmony patch:** anything
+depending on match state that can't be precomputed — e.g.
+`MechanicPatches/ToolsPlayedThisTurnModifierEmulation.cs`'s "value × tools
+played this turn" (`GetFinalValue` Postfix), or
+`MechanicPatches/DrawOnCardPlayedRegistry.cs`'s draw trigger on
+`CombatManager.UseCard`.
+
+## Field/enum reference
+
+See [card fields and effects reference.md](</scripts/c#/bw_patching/DavidInnaRework/knowledge/card fields and effects reference.md>)
+for the full field list (`CardData`, `CardEffect`) and enum members
+(`EffectMode`, `EffectTargeting`, `AppliedEffectType`, `EffectModifiers`,
+`CardModifiers`, etc). To find names for a new card: open dnSpy on
+`...\BepInEx\interop\Assembly-CSharp.dll`, search `CardEffect`/`CardData`/the
+relevant enum (method **bodies** are IL2CPP stubs — only **signatures** are
+trustworthy), and find a card's numeric ID by logging `_CardID`/`_Name` from
+`ResourcesManager.Instance.CardData`.
 
 ---
 
-## 2. Editing multiple numbers on a card
+## Editing effects
 
-When a card has more than one numeric effect (e.g. Card ID `1003` "Ice Blast":
-Frost application + bonus damage if the target is Frozen), the Prefix runs
-once per `CardEffect` instance — you must distinguish which effect you're
-looking at using its other fields (`_Modifiers`/`_ConditionEffect` for
-conditional effects, `_StatusType` for status-applying effects, etc.).
-
-```csharp
-// Card 1003 "Ice Blast" has two effects: applying Frost, and dealing bonus
-// damage if the target is already Frozen. We distinguish them via
-// _Modifiers/_ConditionEffect (the "only if target has effect: Frozen" gate)
-// vs _StatusType (Frost) on the plain status-applying effect.
-[HarmonyPatch(typeof(CardEffect), nameof(CardEffect.GetFinalValue))]
-public static class IceBlastPatch
-{
-    private const int IceBlastCardId = 1003;
-    private const int FrostApplied = 5;
-    private const int DamageIfFrozen = 10;
-
-    static void Prefix(CardEffect __instance)
-    {
-        var cardData = __instance.CardData;
-        if (cardData == null || cardData._CardID != IceBlastCardId) return;
-
-        bool isConditionalDamageEffect =
-            __instance._Modifiers == EffectModifiers.OnlyIfTargetHasEffect
-            && __instance._ConditionEffect == AppliedEffectType.Frozen;
-
-        if (isConditionalDamageEffect)
-        {
-            __instance._EffectValue = DamageIfFrozen;
-            __instance._EffectValueUpgraded = DamageIfFrozen * 2;
-        }
-        else if (__instance._StatusType == StatusType.Frost)
-        {
-            __instance._EffectValue = FrostApplied;
-            __instance._EffectValueUpgraded = FrostApplied * 2;
-        }
-    }
-}
-```
-
-Notes:
-- It can look like "only one value ever changes" when testing casually, but
-  this is because each effect is a *separate* `CardEffect` object — the Prefix
-  fires independently for each one across separate calls, so both values do
-  get set correctly overall.
-- You can go further and rewrite the *condition itself*, not just the value.
-  Since `_Modifiers` and `_ConditionEffect` are plain writable fields, you can
-  reassign them to a different modifier (e.g. change "if target is Frozen" to
-  "if target has no Shield"):
+Every card in this project rebuilds its full `_Effects` list from scratch in
+`ApplyMutations()`: `cardData._Effects.Clear()`, then one
+`cardData._Effects.Add(new CardEffect { ... })` per effect, in execution
+order — rather than mutating whatever the base game happened to load. This
+keeps every field explicit and works the same whether the card has one
+effect or several. **Assign `CardData = cardData` on every new effect** —
+effects loaded from the game's assets already have this owner
+back-reference, `new CardEffect` does not, and a missing owner caused a
+Unity `NullReferenceException` for a runtime-added `TriggerEffect`.
 
 ```csharp
-bool isConditionalDamageEffect =
-    (__instance._Modifiers == EffectModifiers.OnlyIfTargetHasEffect
-        && __instance._ConditionEffect == AppliedEffectType.Frozen)
-    || __instance._Modifiers == EffectModifiers.OnlyIfTargetHasNoShield; // idempotency check
+// Card 1432 "Bottled Ectoplasm": two effects, Curse applied then triggered
+// on the same target (EffectTargeting.Previous re-targets whatever the
+// preceding effect targeted).
+cardData._Effects.Clear();
 
-if (isConditionalDamageEffect)
+cardData._Effects.Add(new CardEffect
 {
-    // Rewrite the condition: "if frozen" -> "if no shield"
-    __instance._Modifiers = EffectModifiers.OnlyIfTargetHasNoShield;
-    __instance._ConditionEffect = AppliedEffectType.NONE; // not needed for this modifier
-
-    __instance._EffectValue = DamageIfNoShield;
-    __instance._EffectValueUpgraded = DamageIfNoShield * 2;
-}
-```
-
-- The idempotency check (`|| __instance._Modifiers == EffectModifiers.OnlyIfTargetHasNoShield`)
-  matters because the Prefix runs on every call to `GetFinalValue`, including
-  calls *after* you've already rewritten the modifier — without it, the
-  `else if (_StatusType == StatusType.Frost)` branch could wrongly match once
-  `_Modifiers` no longer equals the original `OnlyIfTargetHasEffect` value.
-- `EffectModifiers` is a single enum value per effect (not a flags list), and
-  most of them are self-contained (no companion value needed) except ones like
-  `OnlyIfTargetHasEffect` which pair with `_ConditionEffect`.
-
----
-
-## 3. Editing card text (tooltip description)
-
-The final tooltip text comes from `CardData.GetDescription(Card card, bool upgraded, bool highlightUpgrade, string languageOverride)`.
-Internally, this method reads the **raw template string** stored in
-`CardData._BaseDescription` (which still contains the game's own number
-placeholders) and populates it with the live/buffed values itself — the same
-values `CardEffect.GetFinalValue` would compute (accounting for upgrades,
-active combat buffs/debuffs, etc.).
-
-**Correct approach: patch `_BaseDescription`, not the returned string.**
-Use a **Prefix** on `GetDescription` that edits `_BaseDescription` right
-before the original method runs. Do a targeted phrase replace (not a full
-rewrite) so the placeholder tokens for the numbers are left completely
-untouched — the game still fills them in afterwards, exactly the same way it
-always did, buffs and all. This means you never need to duplicate the
-value/buff logic yourself.
-
-```csharp
-// Fixes up the tooltip text for Ice Blast so the condition wording matches
-// the new "if it has no Shield" logic instead of the old "if it's Frozen"
-// wording — WITHOUT touching how the numeric placeholders get filled in.
-//
-// _BaseDescription is the raw template string (with number placeholders)
-// that GetDescription() reads and populates with the live/buffed values
-// every time it's called. We patch this as a Prefix on GetDescription and
-// edit _BaseDescription just before the original method runs, doing a
-// targeted phrase replace (not a full rewrite) so the placeholder tokens for
-// the numbers are left completely untouched — the game still fills them in
-// itself afterwards, the exact same way it always did, buffs and all.
-//
-// We only ever replace the OLD phrase, so re-running this on every call is
-// safe/idempotent: once the phrase has already been swapped, .Replace finds
-// nothing left to change.
-[HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]
-public static class IceBlastDescriptionPatch
-{
-    private const int IceBlastCardId = 1003;
-
-    static void Prefix(CardData __instance)
-    {
-        if (__instance == null || __instance._CardID != IceBlastCardId) return;
-
-        __instance._BaseDescription = __instance._BaseDescription
-            .Replace("if it's Frozen", "if it has no Shield");
-    }
-}
-```
-
-Steps:
-1. `[HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]` on a
-   static class.
-2. Add a static `Prefix(CardData __instance)` method (not a Postfix — see
-   pitfall below).
-3. Guard on `__instance._CardID` for the target card.
-4. Use `.Replace(...)` on `__instance._BaseDescription` to swap only the old
-   phrase for the new one, leaving number placeholders and everything else in
-   the template untouched.
-5. If the exact source wording of `_BaseDescription` is unknown, log it once
-   (temporarily) to see the literal raw template before writing the replace
-   call, then remove the debug log afterward.
-6. Register the patch class in `Plugin.Load()` just like the others.
-7. Because we only ever replace the *old* phrase, this is naturally
-   idempotent — once `_BaseDescription` has already been rewritten, later
-   calls find nothing left to replace, so it's safe that this Prefix runs on
-   every `GetDescription()` call.
-
-### Pitfall: why a Postfix on `__result` doesn't work here
-
-It's tempting to instead patch the *returned* string with a Postfix
-(`ref __result`), but this has two problems:
-
-- **A Prefix that sets `__result` is silently discarded.** The original
-  method still runs afterward and computes/returns its own value, overwriting
-  whatever the Prefix set — this looks like "the game replaces our text back".
-- **A Postfix on `__result` can't correctly re-populate numbers.** By the
-  time `__result` exists, the placeholders are already filled in with plain
-  text — there's no reliable way to know which numbers came from which effect
-  without re-deriving the values yourself (e.g. re-reading `_EffectValue` /
-  calling `GetFinalValue` again), which is fragile and easy to get out of sync
-  with buffs, upgrades, or other patches. Editing `_BaseDescription` up front
-  and letting the *original* templating logic do the substitution avoids all
-  of this — you get correct numbers for free, in every situation (menus,
-  combat, upgraded cards, active buffs) with zero extra code.
-
----
-
-## 4. Editing a card's name
-
-`CardData._Name` is a plain writable string field holding the card's display
-name. Just like `_BaseDescription`, set it with a **Prefix** on
-`CardData.GetDescription` — this hook reliably fires whenever the game needs
-to display the card (both in combat and in the collection screen), so a
-single patch covers every place the name is shown.
-
-```csharp
-// Renames Ice Blast (Card ID 1003) to "Piercing Ice".
-[HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]
-public static class IceBlastNamePatch
-{
-    private const int IceBlastCardId = 1003;
-    internal const string NewName = "Piercing Ice";
-
-    static void Prefix(CardData __instance)
-    {
-        if (__instance == null || __instance._CardID != IceBlastCardId) return;
-
-        __instance._Name = NewName;
-    }
-}
-```
-
-Steps:
-1. `[HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]` on a
-   static class (same hook used for `_BaseDescription` edits).
-2. Add a static `Prefix(CardData __instance)` method.
-3. Guard on `__instance._CardID` for the target card.
-4. Set `__instance._Name` directly to the new name.
-5. Register the patch class in `Plugin.Load()` just like the others.
-
-Notes:
-- Initially it looked like the collection screen might read the name through
-  a different code path (`CardName` property / `GetName()` / `GetEnglishName()`)
-  than combat does, since only patching `_Name` seemed to work in combat but
-  not in the collection at first glance. In practice, simply setting `_Name`
-  via the `GetDescription` Prefix (as above) was enough to fix both — no
-  extra patches on those other members were needed. If you ever do hit a
-  screen that still shows the old name after this, that's a sign something
-  reads the name via a different method/property that isn't triggered by
-  `GetDescription`, and you'd need to patch that one too (Postfix its
-  `__result` to `IceBlastNamePatch.NewName`, matching the same `_CardID` guard).
-
----
-
-## 5. Adding a new effect
-
-To add a behavior a card does not already have, create a `CardEffect` and add
-it to the card's `_Effects` list from a `CardData.GetDescription` Prefix. The
-Prefix must guard on the card ID and check for an equivalent existing effect so
-it remains idempotent.
-
-**Important: assign `CardData = __instance` on every newly created effect.**
-Effects loaded from the game's assets already have this owner back-reference,
-but `new CardEffect` does not. The game can dereference the owner while
-resolving or executing an effect; omitting it caused a Unity
-`NullReferenceException` for a runtime-added `TriggerEffect`.
-
-```csharp
-var triggerCurseEffect = new CardEffect
-{
-    CardData = __instance,
-    _Mode = EffectMode.TriggerEffect,
+    CardData = cardData,
+    _Mode = EffectMode.ApplyEffect,
     _AppliedEffect = AppliedEffectType.Curse,
     _Targeting = EffectTargeting.Ranged,
-    _EffectValue = 1,
-    _EffectValueUpgraded = 1,
-    _EffectCount = 1,
-    _EffectCountUpgraded = 1,
-};
+    _EffectValue = CurseApplied,
+    _EffectValueUpgraded = CurseAppliedUpgraded,
+});
 
-__instance._Effects.Add(triggerCurseEffect);
+cardData._Effects.Add(new CardEffect
+{
+    CardData = cardData,
+    _Mode = EffectMode.TriggerEffect,
+    _AppliedEffect = AppliedEffectType.Curse,
+    _Targeting = EffectTargeting.Previous,
+    _EffectValue = TriggerCount,
+    _EffectValueUpgraded = TriggerCountUpgraded,
+});
 ```
+
+No idempotency guard is needed anywhere in this pattern — `ApplyMutations`
+is called exactly once per game process (`CardDataGameLoadInitializerPatch`'s
+`_initialized` flag).
+
+**Conditional/chained effects:** `_Modifiers` takes one `EffectModifiers`
+value per effect (not a flags mask); most are self-contained, but ones like
+`OnlyIfTargetHasEffect` pair with `_ConditionEffect`. `Condition` gates an
+effect on the *preceding* effect having succeeded (no `_ConditionEffect`
+needed) — see `CardPatches/Card1408_FranticScouring.cs` (`Discard` followed
+by a `Condition`-gated `CreateTool`). `EffectTargeting.Previous` chains
+targeting the same way — see `Card1409_Investigate.cs` (one `Ranged`
+CreateTool, then two debuff-gated `CreateTool` effects targeting `Previous`).
+
+**Order matters:** `_Effects` executes in list order, so build effects in the
+order they should run. `Card1411_ResourcefulStrike.cs` marks two effects
+(`IncreaseDamage` and `IncreaseStrikeDamage`) with the shared
+`ScalePerToolPlayed` marker convention before its `Damage` effect, so the
+damage boost applies before the hit lands. Note that this marker convention
+(`_Modifiers`/`_ConditionEffect`) works with *any* `_Mode` — the emulation
+patch only inspects those two fields, not `_Mode` — which is why this card
+could change from scaling a temporary Powerful buff to scaling
+`IncreaseDamage` without touching the shared mechanic. Also note an effect
+can exist with no corresponding `{N}` placeholder in `_BaseDescription` (its
+value simply isn't shown), as long as the placeholders you *do* use still
+match each referenced effect's position in `_Effects`.
+
+## Editing card text and name
+
+`CardData.GetDescription(...)` reads `_BaseDescription` (a template with
+`{0}`/`{1}`/... placeholders) and fills it with live/buffed values itself —
+set the whole string once in `ApplyMutations()`, keeping the placeholders so
+the game still computes the numbers:
+
+```csharp
+cardData._BaseDescription = "Give Curse ({0}) to any enemy and trigger it {1} time.";
+```
+
+**Style rule: parenthesize a buff/debuff's applied value, not other
+numbers.** When a `{N}` belongs to an `ApplyEffect*`/`TriggerEffect` effect
+with a named `_AppliedEffect` (`Burn`, `Curse`, `Weak`, `Doom`, `Powerful`,
+etc.), wrap it in parens: `Burn ({1})`, `Doom ({0})`. Everything else
+(damage, counts, mana, cost changes, non-`AppliedEffectType` modes like
+`ModifyAllStatuses`/`IncreaseDamage`) has no parens. Matches the base game's
+own convention — see `Card1422_FireBomb.cs`, `Card1426_UnstableDarkstone.cs`,
+`Card1432_BottledEctoplasm.cs`.
+
+`_Name` (display name) follows the identical pattern — set once in
+`ApplyMutations()`:
+```csharp
+cardData._Name = "New Name";
+```
+
+A Postfix on `GetDescription`'s `__result` does **not** work as an
+alternative: a Prefix setting `__result` is silently overwritten by the
+original method running afterward, and by the time a Postfix sees
+`__result` the placeholders are already plain text with no reliable way to
+map numbers back to effects.
+
+## Effect counts, upgrades, and temporary effects
+
+- `_EffectValue`/`_EffectValueUpgraded` = amount; `_EffectCount`/
+  `_EffectCountUpgraded` = repeated hits/triggers. A `2x3` multi-hit uses
+  `_EffectValue = 2`, `_EffectCount = 3`.
+- Make a card upgradeable: `cardData._Modifiers &= ~CardModifiers.NoUpgrade`
+  (bitwise clear, not overwrite), then set `_CostUpgraded`/`_EffectValueUpgraded`.
+- `EffectMode.ApplyEffectThisTurn` + `_AppliedEffect = AppliedEffectType.Powerful`
+  applies temporary Powerful.
+- `EffectTargeting.Melee` = first enemy; `Ranged` = normal enemy targeting;
+  `Self` = caster; `Previous` = re-target whatever the prior effect targeted.
+
+---
+
+## Reusable mechanic patches
+
+**Tools played this turn** (`MechanicPatches/ToolsPlayedThisTurnModifierEmulation.cs`):
+emulates a scaling modifier without a new enum member. Mark an effect with
+`_Modifiers = EffectModifiers.ScalePerStrikePlayed; _ConditionEffect = AppliedEffectType.COUNT;`
+in `ApplyMutations()` (static). The live computation — incrementing
+`ToolsPlayedThisTurn` on `CombatManager.UseCard`, resetting it on
+`StartPlayerTurn`, and multiplying an effect's value by it in a
+`GetFinalValue` Postfix — stays a live patch, since it genuinely depends on
+match state.
+
+**Draw a card when a card of a given `CardType` is played**
+(`MechanicPatches/DrawOnCardPlayedRegistry.cs`): a generic registry
+supporting any number of independent triggers (different `CardType`s,
+different targets, per-target fatigue behavior):
+
+```csharp
+// Plugin.Load(), before the initializer is registered:
+DrawOnCardPlayedRegistry.Register(CardType.Tool, 1401, noFatigue: false);
+```
+
+Ownership lives entirely on the plugin's own side (a `Dictionary<CardType, List<Target>>`),
+never permanently on `CardData`. `CardModifiers` has exactly one unclaimed
+bit (`DrawMarker`) and no room for a second — so every registered target
+shares it, but only *transiently*: on `CombatManager.UseCard`, the registry
+sets `DrawMarker` (+ `NoFatigueSpecialDraw` if configured) only on the cards
+registered for the `CardType` that just played, calls
+`Entity.DrawCardsWithModifier(DrawMarker)`, then immediately clears both
+bits again. This replaced an earlier one-target-per-mechanic design where
+the bit was left permanently set — which broke the moment two *different*
+target cards, under *different* trigger conditions, were both active at
+once (`DrawCardsWithModifier` can't tell which trigger a card "belongs to").
+Keeping the bit clear at rest also leaves it free for another plugin to
+reuse for something unrelated, outside the brief window a draw is actually
+resolving.
 
 ---
 
 ## General checklist for adding a new card patch
 
-1. Find the card's `_CardID` and the effect(s) you want to change (dnSpy /
-   temporary logging of `MetaInventory.Instance.AllCardData`).
-2. Decide: single value, multiple values (need discriminator fields), text
-   change, and/or name change.
-3. Create (or reuse) `CardPatches/Card####_Name.cs` for that card ID, and
-   write a `[HarmonyPatch(typeof(CardEffect), nameof(CardEffect.GetFinalValue))]`
-   Prefix for value/condition changes, and/or a
-   `[HarmonyPatch(typeof(CardData), nameof(CardData.GetDescription))]` Prefix
-   (editing `_BaseDescription` and/or `_Name`) for text/name changes, and/or
-   a new-effect patch (adding a `CardEffect` to `_Effects`, with
-   `CardData = __instance`) — see the examples above.
-4. Register the new patch class(es) in `Plugin.Load()` via
-   `new Harmony(MyPluginInfo.PLUGIN_GUID).PatchAll(typeof(YourPatchClass));`,
-   under a comment naming the card and its file (matching the existing
-   pattern for other cards).
-5. Build (`dotnet build`), copy the resulting DLL to
-   `...\BepInEx\plugins\DavidInnaRework\DavidInnaRework.dll`, and test in-game.
-   `build_and_deploy.bat` in the project root does both steps in one go (only
-   copies if the build succeeds).
+1. Find the card's `_CardID` and effect(s) via dnSpy or logging
+   `ResourcesManager.Instance.CardData`.
+2. Decide: values, new/reordered effects, text, name, and/or live-state
+   behavior (which stays a separate per-call/per-event patch alongside the
+   static `ApplyMutations()`).
+3. Write `CardPatches/Card####_Name.cs` with `ApplyMutations(CardData cardData)`
+   mutating `_Effects`, `_Cost`/`_CostUpgraded`, `_Modifiers`, and/or
+   `_BaseDescription`/`_Name` as needed.
+4. Register it: `ApplyIfPresent(cardDataDict, Card####_Name.YourCardId, Card####_Name.ApplyMutations);`
+   in `CardDataGameLoadInitializer.cs`.
+5. If it needs mechanic-specific state (e.g.
+   `DrawOnCardPlayedRegistry.Register(cardType, cardId, noFatigue)`), call
+   that from `Plugin.Load()` *before* the initializer is registered.
+6. Build (`dotnet build`) and deploy with `build_and_deploy.bat`, then test
+   in-game.

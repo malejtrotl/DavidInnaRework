@@ -91,8 +91,7 @@ public static class DrawOnCardPlayedRegistry
         if (!_targetsByTriggerType.TryGetValue(playedCardType, out var targets)) return;
         if (targets.Count == 0) return;
 
-        // Flag only this trigger's own registered cards, immediately
-        // before the draw call.
+        // Set the bits
         foreach (var target in targets)
         {
             if (!_targetCardData.TryGetValue(target.CardId, out var cardData)) continue;
@@ -106,8 +105,7 @@ public static class DrawOnCardPlayedRegistry
 
         castingEntity.DrawCardsWithModifier(DrawMarker);
 
-        // Clear the bits again immediately, so nothing is left set on any
-        // card outside the moment it was actually needed.
+        // Clear the bits
         foreach (var target in targets)
         {
             if (!_targetCardData.TryGetValue(target.CardId, out var cardData)) continue;

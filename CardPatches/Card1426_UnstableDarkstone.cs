@@ -3,8 +3,8 @@ using Rift;
 namespace DavidInnaRework.CardPatches;
 
 // Unstable Darkstone, 1426
+// Give Doom (6) to any enemy and Dispel it 1 times. Reduce cost by -1 when you play a non-Mana card.
 // Give Doom (6) to any enemy and Dispel it 2 times. Reduce cost by -1 when you play a non-Mana card.
-// Give Doom (6) to any enemy and Dispel it 3 times. Reduce cost by -1 when you play a non-Mana card.
 public static class Card1426_UnstableDarkstone
 {
     internal const int UnstableDarkstoneCardId = 1426;

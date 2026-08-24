@@ -3,8 +3,8 @@ using Rift;
 namespace DavidInnaRework.CardPatches;
 
 // Resourceful Strike, 1411
-// Increase the damage of Strikes in your hand by 1 per Tool played this turn. Deal 2x3 damage to the first enemy.
-// Increase the damage of Strikes in your hand by 1 per Tool played this turn. Deal 2x5 damage to the first enemy.
+// Increase the damage of this and Strikes in your hand by 1 per Tool played this turn. Deal 2x3 damage to the first enemy.
+// Increase the damage of this and Strikes in your hand by 1 per Tool played this turn. Deal 2x5 damage to the first enemy.
 public static class Card1411_ResourcefulStrike
 {
     internal const int ResourcefulStrikeCardId = 1411;
@@ -20,7 +20,7 @@ public static class Card1411_ResourcefulStrike
     private const AppliedEffectType ToolsPlayedThisTurnMarker = AppliedEffectType.COUNT;
 
     private const string NewDescription =
-        "Increase the damage of Strikes in your hand by {0} per Tool played this turn. Deal {2} damage to the first enemy.";
+        "Increase the damage of this and Strikes in your hand by {0} per Tool played this turn. Deal {2} damage to the first enemy.";
 
     public static void ApplyMutations(CardData cardData)
     {
